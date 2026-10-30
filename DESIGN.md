@@ -2,7 +2,7 @@
 
 Sumber: MOCKUP.html milik pengguna. Tampilan aplikasi kerja panitia dan kafilah MTQ Kabupaten Kutai Barat, bukan halaman promosi.
 
-Pembaruan identitas sesuai permintaan pengguna: kiri atas dashboard dan login memakai nama e-MTQ Kemenag Kubar bersama aset logo Kementerian Agama yang sudah dipakai portal Kemenag Kubar. Logo ditampilkan utuh dengan rasio asli; nama dua baris menjaga keterbacaan di sidebar dan layar sempit.
+Pembaruan identitas sesuai permintaan pengguna: kiri atas dashboard dan login memakai nama e-MTQ LPTQ Kubar bersama aset logo LPTQ Kabupaten Kutai Barat yang diberikan pengguna. Logo ditampilkan utuh dengan rasio asli; nama dua baris menjaga keterbacaan di sidebar dan layar sempit.
 
 Dial: ENERGY 1 / RHYTHM 1 / MOTION 1.
 

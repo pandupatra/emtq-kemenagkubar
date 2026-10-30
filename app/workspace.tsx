@@ -184,7 +184,7 @@ function Receipt({ result: r }: { result: Result }) {
     <article className="receipt">
       <div className="receipt-head">
         <div>
-          <div className="wordmark">e-MTQ Kemenag Kubar</div>
+          <div className="wordmark">e-MTQ LPTQ Kubar</div>
           <h2>Bukti hasil undian</h2>
           <p>MTQ Kabupaten Kutai Barat</p>
         </div>
@@ -242,6 +242,47 @@ export default function Workspace({ configured }: { configured: boolean }) {
     [menu, setMenu] = useState(false),
     [dark, setDark] = useState(false);
   const [query, setQuery] = useState("");
+  const menuPanel = useRef<HTMLElement>(null);
+  const menuTrigger = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!menu) return;
+    const panel = menuPanel.current;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const controls = () =>
+      Array.from(
+        panel?.querySelectorAll<HTMLElement>(
+          "button:not(:disabled), a[href]",
+        ) ?? [],
+      );
+    controls()[0]?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenu(false);
+      if (event.key !== "Tab") return;
+      const items = controls();
+      const first = items[0],
+        last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    const desktop = window.matchMedia("(min-width: 1120px)");
+    const onResize = () => {
+      if (desktop.matches) setMenu(false);
+    };
+    document.addEventListener("keydown", onKey);
+    desktop.addEventListener("change", onResize);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKey);
+      desktop.removeEventListener("change", onResize);
+      menuTrigger.current?.focus();
+    };
+  }, [menu]);
   const [pendingChange, setPendingChange] = useState<PendingChange | null>(
     null,
   );
@@ -905,16 +946,55 @@ export default function Workspace({ configured }: { configured: boolean }) {
         Lewati navigasi
       </a>
       <div className="shell">
-        <aside className={`side ${menu ? "is-open" : ""}`}>
+        <header className="mobile-header" inert={menu}>
           <Brand />
           <button
             className="btn mobile-toggle"
+            ref={menuTrigger}
+            type="button"
             aria-expanded={menu}
             aria-controls="navigation"
-            onClick={() => setMenu(!menu)}
+            onClick={() => setMenu(true)}
           >
-            {menu ? "Tutup menu" : "Menu"}
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden="true"
+            >
+              <path d="M3 6h18M3 12h18M3 18h18" />
+            </svg>
+            Menu
           </button>
+        </header>
+        {menu && (
+          <div
+            className="menu-backdrop"
+            onClick={() => setMenu(false)}
+            aria-hidden="true"
+          />
+        )}
+        <aside
+          ref={menuPanel}
+          className={`side ${menu ? "is-open" : ""}`}
+          role={menu ? "dialog" : undefined}
+          aria-modal={menu ? true : undefined}
+          aria-label="Menu utama"
+        >
+          <div className="side-heading">
+            <Brand />
+            <button
+              type="button"
+              className="btn icon-btn mobile-close"
+              aria-label="Tutup menu"
+              onClick={() => setMenu(false)}
+            >
+              <ActionIcon name="close" />
+            </button>
+          </div>
           <nav id="navigation" aria-label="Navigasi utama">
             {pages.map((p) => (
               <button
@@ -938,14 +1018,20 @@ export default function Workspace({ configured }: { configured: boolean }) {
             <div className="actions">
               <button
                 className="btn"
-                onClick={() => setModal({ kind: "account" })}
+                onClick={() => {
+                  setMenu(false);
+                  setModal({ kind: "account" });
+                }}
               >
                 Pengaturan akun
               </button>
               <button
                 className="btn icon-btn"
                 disabled={busy}
-                onClick={() => void logout()}
+                onClick={() => {
+                  setMenu(false);
+                  void logout();
+                }}
                 aria-label="Keluar"
                 title="Keluar"
               >
@@ -954,7 +1040,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
             </div>
           </div>
         </aside>
-        <main className="main">
+        <main className="main" inert={menu}>
           <header className="topbar">
             <span>MTQ Kutai Barat</span>
             <button

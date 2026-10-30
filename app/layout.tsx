@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 export const metadata: Metadata = {
-  icons: { icon: "data:," },
-  title: "e-MTQ Kemenag Kubar",
+  icons: { icon: "/logo-lptq.png", apple: "/logo-lptq.png" },
+  title: "e-MTQ LPTQ Kubar",
   description:
     "Daftar peserta, undian maqro, dan hasil undian MTQ Kutai Barat.",
 };

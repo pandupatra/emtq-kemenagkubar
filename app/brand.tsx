@@ -1,19 +1,19 @@
 import Image from "next/image";
-import kemenagLogo from "@/public/logo-kemenag.png";
+import lptqLogo from "@/public/logo-lptq.png";
 
 export default function Brand() {
   return (
     <div className="brand">
       <Image
-        src={kemenagLogo}
-        alt="Logo Kementerian Agama"
+        src={lptqLogo}
+        alt="Logo LPTQ Kabupaten Kutai Barat"
         className="brand-logo"
         sizes="44px"
         preload
       />
       <div className="brand-name">
         <strong>e-MTQ</strong>
-        <span>Kemenag Kubar</span>
+        <span>LPTQ Kubar</span>
       </div>
     </div>
   );

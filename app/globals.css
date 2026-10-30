@@ -240,21 +240,76 @@ small {
   margin-top: 4px;
 }
 .side {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 51;
+  width: min(340px, calc(100% - 32px));
+  height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  visibility: hidden;
+  transform: translateX(-100%);
+  transition:
+    transform 220ms ease,
+    visibility 220ms;
   background: var(--surface);
   border-bottom: 1px solid var(--line);
   padding: 16px 18px;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+.side.is-open {
+  visibility: visible;
+  transform: translateX(0);
+}
+.mobile-header,
+.side-heading {
+  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+.mobile-header {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+.mobile-header .brand-name strong,
+.side-heading .brand-name strong {
+  font-size: 20px;
+}
+.mobile-header .brand-name span {
+  font-size: 12px;
+}
+.mobile-toggle {
+  flex-shrink: 0;
+  gap: 8px;
+}
+.side-heading {
+  margin-bottom: 20px;
+}
+.mobile-close {
+  flex-shrink: 0;
+}
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgb(0 0 0 / 45%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .side {
+    transition: none;
+  }
 }
 .mobile-toggle {
   display: inline-flex;
 }
 .side nav {
-  display: none;
-  flex: 0 0 100%;
+  display: grid;
+  gap: 5px;
 }
 .side.is-open nav {
   display: grid;
@@ -280,7 +335,8 @@ small {
   color: var(--ink);
 }
 .side-foot {
-  display: none;
+  display: block;
+  margin-top: auto;
   width: 100%;
   border-top: 1px solid var(--line);
   padding-top: 15px;
@@ -994,6 +1050,12 @@ dialog::backdrop {
     padding: 16px 30px;
   }
   .side {
+    inset: auto;
+    z-index: auto;
+    width: auto;
+    visibility: visible;
+    transform: none;
+    transition: none;
     padding: 18px 30px;
   }
   .form-grid {
@@ -1082,6 +1144,15 @@ dialog::backdrop {
   }
   .mobile-toggle {
     display: none;
+  }
+  .mobile-header,
+  .mobile-close,
+  .menu-backdrop {
+    display: none;
+  }
+  .side-heading {
+    display: block;
+    margin-bottom: 0;
   }
   .side nav,
   .side.is-open nav {
