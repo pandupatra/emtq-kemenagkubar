@@ -1,0 +1,10 @@
+{
+  "example": true,
+  "source": "Materi contoh MOCKUP.html, bukan ketetapan paket resmi setiap cabang",
+  "categories": ["Tartil Al-Qur'an", "Tilawah Anak", "Tilawah Remaja", "Tilawah Dewasa", "Qira'at Murattal Remaja", "Qira'at Murattal Dewasa", "Qira'at Mujawwad Remaja", "Qira'at Mujawwad Dewasa", "1 Juz dan Tilawah", "5 Juz dan Tilawah", "Syarhil Qur'an"],
+  "packages": [
+    {"surah": "[CONTOH] Al-Baqarah", "verses": "21-25"},
+    {"surah": "[CONTOH] Ali Imran", "verses": "190-194"},
+    {"surah": "[CONTOH] Luqman", "verses": "12-19"}
+  ]
+}
