@@ -130,43 +130,30 @@ export function WorkspaceSkeleton({ page }: { page: string }) {
   if (page === "dashboard")
     return (
       <Frame label={label}>
-        <div className="summary-line skeleton-summary">
-          <Bar />
-          <Bar />
-          <Bar />
-        </div>
-        <div className="split">
-          <section className="panel">
-            <div className="skeleton-field">
-              <Bar tall />
-              <Bar wide />
+        <div className="work-summary">
+          <section className="panel overview-panel">
+            <Bar tall />
+            <div className="overview-counts">
+              {[0, 1, 2].map((item) => (
+                <div className="overview-count skeleton-field" key={item}>
+                  <Bar />
+                  <Bar tall />
+                  <Bar />
+                </div>
+              ))}
             </div>
-            {Array.from({ length: 3 }, (_, i) => (
-              <div className="skeleton-task" key={i}>
-                <Bar tall />
+            <Bar wide />
+          </section>
+          <section className="panel">
+            <Bar tall />
+            {[0, 1, 2, 3, 4].map((row) => (
+              <div className="skeleton-row" key={row}>
                 <Bar wide />
+                <Bar />
                 <Bar />
               </div>
             ))}
           </section>
-          <div className="stack">
-            <section className="panel">
-              <div className="skeleton-field">
-                <Bar tall />
-                <Bar wide />
-              </div>
-              <div className="skeleton-task">
-                <Bar />
-                <Bar wide />
-                <Bar tall />
-              </div>
-            </section>
-            <section className="panel skeleton-field">
-              <Bar tall />
-              <Bar wide />
-              <Bar wide />
-            </section>
-          </div>
         </div>
       </Frame>
     );

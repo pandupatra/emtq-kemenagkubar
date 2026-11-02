@@ -15,6 +15,7 @@ import Brand from "./brand";
 import ActionIcon from "./action-icon";
 import ParticipantResults from "./participant-results";
 import DrawPicker from "./draw-picker";
+import WorkSummary from "./work-summary";
 
 const titles: Record<string, string> = {
   dashboard: "Ringkasan kerja",
@@ -136,11 +137,13 @@ function Modal({
   children,
   close,
   busy,
+  className,
 }: {
   title: string;
   children: ReactNode;
   close: () => void;
   busy: boolean;
+  className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -155,6 +158,7 @@ function Modal({
   return (
     <dialog
       ref={ref}
+      className={className}
       aria-labelledby="dialog-title"
       aria-busy={busy}
       onCancel={(e) => {
@@ -876,17 +880,16 @@ export default function Workspace({ configured }: { configured: boolean }) {
         <div className="login">
           <section className="login-context">
             <Brand login />
-            <h1>Kelola peserta dan undian maqro.</h1>
-            <p>
-              Daftar peserta, undian maqro, dan hasil undian dalam satu ruang
-              kerja.
-            </p>
+            <h1>
+              Selamat datang di{" "}
+              <span style={{ whiteSpace: "nowrap" }}>e-MTQ</span> Kabupaten
+              Kutai Barat
+            </h1>
             <div className="event-stamp">MTQ Kabupaten Kutai Barat</div>
           </section>
           <main className="login-main" id="workspace">
             <div className="login-box" aria-busy={loading || busy}>
-              <h1>Masuk ke ruang kerja</h1>
-              <p>Gunakan akun yang diberikan panitia.</p>
+              <h1>Masuk</h1>
               {!configured ? (
                 <div className="notice warn">
                   <strong>Aplikasi belum siap digunakan.</strong>
@@ -938,8 +941,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
                 </form>
               </div>
               <p className="hint">
-                Kolom bertanda * wajib diisi. Jika akses bermasalah, hubungi
-                panitia MTQ.
+                Jika akses bermasalah, hubungi panitia MTQ.
               </p>
               {themeButton}
               {configured && error ? (
@@ -953,14 +955,18 @@ export default function Workspace({ configured }: { configured: boolean }) {
       </>
     );
 
-  const previewPeople = data.people.slice(0, 5);
   const compareText = new Intl.Collator("id", {
     sensitivity: "base",
     numeric: true,
   });
-  const districts = [...new Set(data.people.map((p) => p.district))].sort(
-    compareText.compare,
-  );
+  const districts = [
+    ...new Set([
+      ...data.people.map((p) => p.district),
+      ...data.profiles.flatMap((p) =>
+        p.role === "district" && p.district ? [p.district] : [],
+      ),
+    ]),
+  ].sort(compareText.compare);
   const activeDraws = new Set(
     data.results
       .filter((r) => !r.cancelled)
@@ -1195,103 +1201,15 @@ export default function Workspace({ configured }: { configured: boolean }) {
               ) : (
                 <>
                   {page === "dashboard" && admin ? (
-                    <>
-                      <div className="summary-line">
-                        <span>
-                          <strong>{data.people.length}</strong>peserta
-                        </span>
-                        <span>
-                          <strong>
-                            {data.results.filter((r) => !r.cancelled).length}
-                          </strong>
-                          hasil undian aktif
-                        </span>
-                      </div>
-                      <div className="split">
-                        <section className="panel">
-                          <div className="section-head">
-                            <div>
-                              <h2>Daftar peserta</h2>
-                              <p className="hint">
-                                Kelola peserta dan cabang yang diikuti sebelum
-                                membuka sesi.
-                              </p>
-                            </div>
-                            <button
-                              className="btn"
-                              onClick={() => go("people")}
-                            >
-                              Lihat semua peserta
-                            </button>
-                          </div>
-                          {previewPeople.length ? (
-                            <ul className="work-list">
-                              {previewPeople.map((p, i) => (
-                                <li className="work-item" key={p.id}>
-                                  <div className="identity">
-                                    <span className="number">
-                                      {String(i + 1).padStart(2, "0")}
-                                    </span>
-                                    <div>
-                                      <h3>{p.name}</h3>
-                                      <p>
-                                        {p.district} ·{" "}
-                                        {p.entries.map(category).join(", ")}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  {personActions(p)}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <Empty title="Belum ada peserta">
-                              Tambahkan peserta melalui menu Daftar peserta.
-                            </Empty>
-                          )}
-                        </section>
-                        <div className="stack">
-                          <section className="panel">
-                            <h2>Status sesi</h2>
-                            {data.sessions.some((s) => s.open) ? (
-                              <ul className="work-list">
-                                {data.sessions
-                                  .filter((s) => s.open)
-                                  .map((s) => (
-                                    <li className="work-item" key={s.id}>
-                                      <div>
-                                        <h3>{category(s.category_id)}</h3>
-                                        <Badge>Dibuka</Badge>
-                                      </div>
-                                    </li>
-                                  ))}
-                              </ul>
-                            ) : (
-                              <Empty title="Belum ada sesi dibuka">
-                                {admin
-                                  ? "Tambahkan maqro, lalu buka sesi yang akan diundi."
-                                  : "Panitia akan membuka sesi setelah persiapan selesai."}
-                              </Empty>
-                            )}
-                            <button
-                              className="btn primary"
-                              onClick={() => go(admin ? "sessions" : "draw")}
-                            >
-                              {admin ? "Kelola sesi" : "Pilih peserta undian"}
-                            </button>
-                          </section>
-                          <section className="panel">
-                            <h2>
-                              {admin ? "Urutan persiapan" : "Alur kafilah"}
-                            </h2>
-                            <p className="hint">
-                              Siapkan daftar peserta dan maqro, buka sesi, lalu
-                              pantau hasil undian.
-                            </p>
-                          </section>
-                        </div>
-                      </div>
-                    </>
+                    <WorkSummary
+                      data={data}
+                      openPeople={({ district = "", status = "" }) => {
+                        resetPeopleFilters();
+                        setPeopleDistrict(district);
+                        setPeopleDrawStatus(status);
+                        go("people");
+                      }}
+                    />
                   ) : null}
                   {page === "people" ? (
                     <>
@@ -1938,6 +1856,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
       </div>
       {modal ? (
         <Modal
+          className={modal.kind === "account" ? "account-dialog" : undefined}
           title={
             {
               person: modal.person ? "Edit peserta" : "Tambah peserta",
@@ -2239,33 +2158,51 @@ export default function Workspace({ configured }: { configured: boolean }) {
             </form>
           ) : null}
           {modal.kind === "account" ? (
-            <>
-              <p>
-                <strong>
+            <div className="account-settings">
+              <div className="account-identity">
+                <h3>
                   {admin ? "Admin utama" : `Kafilah ${data.profile.district}`}
-                </strong>
-                <br />
-                Nama pengguna: {data.profile.username}
-              </p>
-              <div className="stack">
+                </h3>
+                <p>
+                  Nama pengguna: <strong>{data.profile.username}</strong>
+                </p>
+              </div>
+              <div className="account-setting-row">
+                <div>
+                  <h3>Kata sandi</h3>
+                  <p>Kelola kata sandi untuk masuk ke akun.</p>
+                </div>
                 <button
                   className="btn"
+                  disabled={busy}
                   onClick={() => setModal({ kind: "password" })}
                 >
                   Ubah kata sandi
                 </button>
-                {themeButton}
+              </div>
+              <div className="account-setting-row">
+                <div>
+                  <h3>Tampilan</h3>
+                  <p>Tema {dark ? "gelap" : "terang"} sedang aktif.</p>
+                </div>
+                <button className="btn" onClick={() => setDark(!dark)}>
+                  <ActionIcon name={dark ? "sun" : "moon"} />
+                  {dark ? "Tema terang" : "Tema gelap"}
+                </button>
+              </div>
+              <div className="account-signout">
                 <button
-                  className="btn icon-btn"
+                  className="btn danger"
                   disabled={busy}
                   onClick={() => void logout()}
                   aria-label="Keluar dari akun"
                   title="Keluar dari akun"
                 >
                   <ActionIcon name="logout" />
+                  {busy ? "Sedang keluar…" : "Keluar dari akun"}
                 </button>
               </div>
-            </>
+            </div>
           ) : null}
           {modal.kind === "password" ? (
             <form className="form-stack" onSubmit={password}>

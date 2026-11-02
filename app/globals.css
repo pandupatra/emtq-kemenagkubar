@@ -417,20 +417,187 @@ small {
   display: grid;
   gap: 20px;
 }
-.summary-line {
-  padding: 15px 0 23px;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 24px;
-  font-size: 14px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 28px;
+.work-summary {
+  display: grid;
+  gap: 24px;
 }
-.summary-line strong {
-  font-size: 21px;
+.overview-panel h2 {
+  margin-bottom: 16px;
+}
+.overview-counts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.overview-count {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 12px;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: var(--muted);
+  text-align: left;
+  min-width: 0;
+}
+.overview-count:hover {
+  background: var(--tint);
+}
+.overview-count strong {
   color: var(--ink);
+  font-size: clamp(28px, 4vw, 38px);
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.overview-link {
+  color: var(--green);
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.overview-progress {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  border-top: 1px solid var(--line);
+  margin-top: 16px;
+  padding-top: 16px;
+}
+.overview-progress p {
+  margin: 0;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.overview-progress strong {
+  color: var(--ink);
+}
+.overview-progress progress {
+  width: 100%;
+  min-width: 0;
+  height: 8px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--tint);
+  accent-color: var(--green);
+}
+.overview-progress progress::-webkit-progress-bar {
+  background: var(--tint);
+  border-radius: 4px;
+}
+.overview-progress progress::-webkit-progress-value {
+  background: var(--green);
+  border-radius: 4px;
+}
+.overview-progress progress::-moz-progress-bar {
+  background: var(--green);
+  border-radius: 4px;
+}
+.overview-note {
+  margin: 12px 0 0;
+  max-width: 75ch;
+}
+.district-overview .section-head {
+  margin-bottom: 12px;
+}
+.district-table-scroll {
+  overflow-x: auto;
+}
+.district-overview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  text-align: left;
+}
+.district-overview-table th,
+.district-overview-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.district-overview-table thead th {
+  background: var(--tint);
+  color: var(--muted);
   font-weight: 600;
-  margin-right: 5px;
+  font-size: 12px;
+}
+.district-overview-table .numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.district-overview-table tbody th {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.district-overview-table tbody tr:hover {
+  background: var(--paper);
+}
+.district-overview-table tfoot {
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--tint);
+}
+.district-overview-table tfoot th,
+.district-overview-table tfoot td {
+  border-bottom: 0;
+}
+.district-name,
+.district-remaining {
+  border: 0;
+  background: transparent;
+  color: var(--green);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  min-height: 44px;
+}
+.district-name {
+  text-align: left;
+  padding: 8px 0;
+  font-weight: 600;
+}
+.district-remaining {
+  min-width: 44px;
+  padding: 0 10px;
+  margin: -10px -10px -10px 0;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 600px) {
+  .overview-counts {
+    gap: 8px;
+  }
+  .overview-count {
+    padding: 8px 0;
+    font-size: 12px;
+  }
+  .overview-link {
+    font-size: 12px;
+  }
+  .overview-progress {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .district-overview-table {
+    font-size: 12px;
+    table-layout: fixed;
+  }
+  .district-overview-table th,
+  .district-overview-table td {
+    padding: 8px 3px;
+  }
+  .district-overview-table th:first-child {
+    width: 34%;
+  }
+  .district-overview-table thead .numeric {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-size: 11px;
+  }
+  .district-overview-table thead span {
+    display: block;
+    white-space: nowrap;
+  }
 }
 .work-list {
   list-style: none;
@@ -744,6 +911,9 @@ small {
   align-items: flex-start;
   gap: 20px;
 }
+.brand-login .brand-name {
+  display: none;
+}
 .login-logos {
   display: flex;
   align-items: center;
@@ -764,7 +934,7 @@ small {
 .login-context h1 {
   font-size: clamp(31px, 4vw, 53px);
   color: #fffefa;
-  margin: 45px 0 20px;
+  margin: 24px 0 20px;
   max-width: 470px;
 }
 .login-context p {
@@ -987,6 +1157,74 @@ dialog::backdrop {
 .dialog-actions {
   margin-top: 24px;
   justify-content: flex-end;
+}
+.account-dialog {
+  width: min(520px, calc(100% - 28px));
+}
+.account-dialog .dialog-head {
+  align-items: center;
+  margin-bottom: 20px;
+}
+.account-dialog .dialog-head h2 {
+  font-size: 25px;
+}
+.account-dialog .dialog-head .btn {
+  margin-top: 0;
+}
+.account-identity {
+  padding: 16px;
+  background: var(--tint);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+}
+.account-identity h3 {
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.account-settings p {
+  margin-bottom: 0;
+  font-size: 13px;
+}
+.account-identity strong {
+  color: var(--body);
+  font-weight: 600;
+}
+.account-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px 0;
+}
+.account-setting-row + .account-setting-row {
+  border-top: 1px solid var(--line);
+}
+.account-setting-row h3 {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+.account-setting-row .btn {
+  flex-shrink: 0;
+}
+.account-signout {
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+}
+.account-signout .btn {
+  width: 100%;
+}
+@media (max-width: 480px) {
+  .account-dialog {
+    padding: 20px;
+  }
+  .account-setting-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .account-setting-row .btn {
+    width: 100%;
+  }
 }
 #feedback {
   position: fixed;
@@ -1257,10 +1495,10 @@ dialog::backdrop {
     justify-content: center;
   }
   .login-context .brand {
-    margin-bottom: auto;
+    margin-bottom: 0;
   }
   .login-context h1 {
-    margin: 80px 0 25px;
+    margin: 32px 0 25px;
   }
   .event-stamp {
     margin-top: auto;
@@ -1316,9 +1554,6 @@ dialog::backdrop {
 }
 .skeleton-login {
   margin-bottom: 6px;
-}
-.skeleton-summary .skeleton-bar {
-  width: min(26%, 150px);
 }
 .skeleton-task {
   display: grid;
