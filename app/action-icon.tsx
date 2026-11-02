@@ -1,9 +1,15 @@
 export default function ActionIcon({
   name,
 }: {
-  name: "refresh" | "sun" | "moon" | "logout" | "close" | "edit";
+  name: "refresh" | "sun" | "moon" | "logout" | "close" | "edit" | "eye";
 }) {
   const shapes = {
+    eye: (
+      <>
+        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+        <circle cx="12" cy="12" r="3" />
+      </>
+    ),
     edit: (
       <>
         <path d="m15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15l-1 6Z" />

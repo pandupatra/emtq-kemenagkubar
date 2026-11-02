@@ -242,6 +242,19 @@ export default function Workspace({ configured }: { configured: boolean }) {
     [menu, setMenu] = useState(false),
     [dark, setDark] = useState(false);
   const [query, setQuery] = useState("");
+  const [peopleDistrict, setPeopleDistrict] = useState("");
+  const [peopleCategory, setPeopleCategory] = useState("");
+  const [peopleGender, setPeopleGender] = useState("");
+  const [peopleDrawStatus, setPeopleDrawStatus] = useState("");
+  const [peopleSort, setPeopleSort] = useState("name-asc");
+  const resetPeopleFilters = () => {
+    setQuery("");
+    setPeopleDistrict("");
+    setPeopleCategory("");
+    setPeopleGender("");
+    setPeopleDrawStatus("");
+    setPeopleSort("name-asc");
+  };
   const menuPanel = useRef<HTMLElement>(null);
   const menuTrigger = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -774,17 +787,21 @@ export default function Workspace({ configured }: { configured: boolean }) {
       <div className="actions" aria-busy={updating("person", p.id)}>
         {admin ? (
           <button
-            className="btn"
+            className="btn icon-btn"
+            title="Edit peserta"
+            aria-label={`Edit peserta ${p.name}`}
             onClick={() => setModal({ kind: "person", person: p })}
           >
-            Edit peserta
+            <ActionIcon name="edit" />
           </button>
         ) : null}
         <button
-          className="btn"
+          className="btn icon-btn"
+          title="Lihat detail"
+          aria-label={`Lihat detail ${p.name}`}
           onClick={() => setModal({ kind: "detail", person: p })}
         >
-          Lihat detail
+          <ActionIcon name="eye" />
         </button>
       </div>
     );
@@ -858,7 +875,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
         </a>
         <div className="login">
           <section className="login-context">
-            <Brand />
+            <Brand login />
             <h1>Kelola peserta dan undian maqro.</h1>
             <p>
               Daftar peserta, undian maqro, dan hasil undian dalam satu ruang
@@ -937,9 +954,64 @@ export default function Workspace({ configured }: { configured: boolean }) {
     );
 
   const previewPeople = data.people.slice(0, 5);
-  const visiblePeople = data.people.filter((p) =>
-    (p.name + " " + p.district).toLowerCase().includes(query.toLowerCase()),
+  const compareText = new Intl.Collator("id", {
+    sensitivity: "base",
+    numeric: true,
+  });
+  const districts = [...new Set(data.people.map((p) => p.district))].sort(
+    compareText.compare,
   );
+  const activeDraws = new Set(
+    data.results
+      .filter((r) => !r.cancelled)
+      .map((r) => `${r.person_id}:${r.category}`),
+  );
+  const hasPeopleFilters = Boolean(
+    query ||
+    peopleDistrict ||
+    peopleCategory ||
+    peopleGender ||
+    peopleDrawStatus ||
+    peopleSort !== "name-asc",
+  );
+  const visiblePeople = data.people
+    .filter((p) => {
+      if (
+        !(p.name + " " + p.district)
+          .toLocaleLowerCase("id")
+          .includes(query.trim().toLocaleLowerCase("id"))
+      )
+        return false;
+      if (admin && peopleDistrict && p.district !== peopleDistrict)
+        return false;
+      if (peopleCategory && !p.entries.includes(peopleCategory)) return false;
+      if (peopleGender && p.gender !== peopleGender) return false;
+      const entries = peopleCategory ? [peopleCategory] : p.entries;
+      const drawn = entries.some((id) =>
+        activeDraws.has(`${p.id}:${category(id)}`),
+      );
+      return (
+        !peopleDrawStatus || (peopleDrawStatus === "drawn" ? drawn : !drawn)
+      );
+    })
+    .sort((a, b) => {
+      const byName =
+        compareText.compare(a.name, b.name) || compareText.compare(a.id, b.id);
+      switch (peopleSort) {
+        case "name-desc":
+          return -byName;
+        case "district-asc":
+          return compareText.compare(a.district, b.district) || byName;
+        case "district-desc":
+          return compareText.compare(b.district, a.district) || byName;
+        case "youngest":
+          return b.birth.localeCompare(a.birth) || byName;
+        case "oldest":
+          return a.birth.localeCompare(b.birth) || byName;
+        default:
+          return byName;
+      }
+    });
   return (
     <>
       <a className="skip" href="#workspace">
@@ -1223,7 +1295,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
                   ) : null}
                   {page === "people" ? (
                     <>
-                      <div className="filters">
+                      <div className="filters people-filters">
                         <div className="field">
                           <label htmlFor="search">
                             Cari peserta atau kecamatan
@@ -1236,14 +1308,208 @@ export default function Workspace({ configured }: { configured: boolean }) {
                             placeholder="Nama peserta atau kecamatan"
                           />
                         </div>
+                        {admin ? (
+                          <div className="field">
+                            <label htmlFor="people-district">Kecamatan</label>
+                            <select
+                              id="people-district"
+                              value={peopleDistrict}
+                              onChange={(e) =>
+                                setPeopleDistrict(e.target.value)
+                              }
+                            >
+                              <option value="">Semua kecamatan</option>
+                              {districts.map((district) => (
+                                <option key={district} value={district}>
+                                  {district}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ) : null}
+                        <div className="field">
+                          <label htmlFor="people-category">Cabang</label>
+                          <select
+                            id="people-category"
+                            value={peopleCategory}
+                            onChange={(e) => setPeopleCategory(e.target.value)}
+                          >
+                            <option value="">Semua cabang</option>
+                            {data.categories.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="field">
+                          <label htmlFor="people-gender">Putra / Putri</label>
+                          <select
+                            id="people-gender"
+                            value={peopleGender}
+                            onChange={(e) => setPeopleGender(e.target.value)}
+                          >
+                            <option value="">Semua peserta</option>
+                            <option value="Putra">Putra</option>
+                            <option value="Putri">Putri</option>
+                          </select>
+                        </div>
+                        <div className="field">
+                          <label htmlFor="people-draw-status">
+                            Status undian
+                          </label>
+                          <select
+                            id="people-draw-status"
+                            value={peopleDrawStatus}
+                            onChange={(e) =>
+                              setPeopleDrawStatus(e.target.value)
+                            }
+                            aria-describedby="people-draw-hint"
+                          >
+                            <option value="">Semua status</option>
+                            <option value="drawn">Sudah mengundi</option>
+                            <option value="not-drawn">Belum mengundi</option>
+                          </select>
+                        </div>
                       </div>
+                      <div className="people-filter-summary">
+                        <p role="status">
+                          Menampilkan {visiblePeople.length} dari{" "}
+                          {data.people.length} peserta
+                        </p>
+                        <button
+                          type="button"
+                          className="btn"
+                          onClick={resetPeopleFilters}
+                          disabled={!hasPeopleFilters}
+                        >
+                          Reset filter & urutan
+                        </button>
+                      </div>
+                      <p className="hint" id="people-draw-hint">
+                        {peopleCategory
+                          ? "Status undian mengikuti cabang yang dipilih."
+                          : "Sudah mengundi berarti memiliki hasil aktif pada setidaknya satu cabang."}
+                      </p>
                       <section className="panel data-panel">
                         {visiblePeople.length ? (
                           <table className="table people-table">
+                            <caption className="people-table-caption">
+                              {" "}
+                              <div className="field">
+                                <label htmlFor="people-sort">Urutkan</label>
+                                <select
+                                  id="people-sort"
+                                  value={peopleSort}
+                                  onChange={(e) =>
+                                    setPeopleSort(e.target.value)
+                                  }
+                                >
+                                  <option value="name-asc">Nama A–Z</option>
+                                  <option value="name-desc">Nama Z–A</option>
+                                  {admin ? (
+                                    <option value="district-asc">
+                                      Kecamatan A–Z
+                                    </option>
+                                  ) : null}
+                                  {admin ? (
+                                    <option value="district-desc">
+                                      Kecamatan Z–A
+                                    </option>
+                                  ) : null}
+                                  <option value="youngest">Usia termuda</option>
+                                  <option value="oldest">Usia tertua</option>
+                                </select>
+                              </div>
+                            </caption>
                             <thead>
                               <tr>
-                                <th>Peserta</th>
-                                <th>Kecamatan & cabang</th>
+                                <th
+                                  scope="col"
+                                  aria-sort={
+                                    peopleSort === "name-asc"
+                                      ? "ascending"
+                                      : peopleSort === "name-desc"
+                                        ? "descending"
+                                        : "none"
+                                  }
+                                >
+                                  <button
+                                    type="button"
+                                    className="table-sort"
+                                    onClick={() =>
+                                      setPeopleSort(
+                                        peopleSort === "name-asc"
+                                          ? "name-desc"
+                                          : "name-asc",
+                                      )
+                                    }
+                                  >
+                                    Peserta{" "}
+                                    <span aria-hidden="true">
+                                      <svg
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 16 16"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="1.5"
+                                      >
+                                        {peopleSort !== "name-desc" ? (
+                                          <path d="m4 6 4-4 4 4" />
+                                        ) : null}
+                                        {peopleSort !== "name-asc" ? (
+                                          <path d="m4 10 4 4 4-4" />
+                                        ) : null}
+                                      </svg>
+                                    </span>
+                                  </button>
+                                </th>
+                                <th
+                                  scope="col"
+                                  aria-sort={
+                                    peopleSort === "district-asc"
+                                      ? "ascending"
+                                      : peopleSort === "district-desc"
+                                        ? "descending"
+                                        : "none"
+                                  }
+                                >
+                                  {admin ? (
+                                    <button
+                                      type="button"
+                                      className="table-sort"
+                                      onClick={() =>
+                                        setPeopleSort(
+                                          peopleSort === "district-asc"
+                                            ? "district-desc"
+                                            : "district-asc",
+                                        )
+                                      }
+                                    >
+                                      Kecamatan & cabang{" "}
+                                      <span aria-hidden="true">
+                                        <svg
+                                          width="16"
+                                          height="16"
+                                          viewBox="0 0 16 16"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth="1.5"
+                                        >
+                                          {peopleSort !== "district-desc" ? (
+                                            <path d="m4 6 4-4 4 4" />
+                                          ) : null}
+                                          {peopleSort !== "district-asc" ? (
+                                            <path d="m4 10 4 4 4-4" />
+                                          ) : null}
+                                        </svg>
+                                      </span>
+                                    </button>
+                                  ) : (
+                                    "Kecamatan & cabang"
+                                  )}
+                                </th>
                                 <th>Hasil undian</th>
                                 <th>Tindakan</th>
                               </tr>
@@ -1296,8 +1562,8 @@ export default function Workspace({ configured }: { configured: boolean }) {
                         ) : (
                           <div className="panel-inset">
                             <Empty title="Peserta tidak ditemukan">
-                              {query
-                                ? "Ubah pencarian untuk melihat peserta lain."
+                              {hasPeopleFilters
+                                ? "Ubah pencarian atau filter, atau gunakan Reset filter & urutan untuk melihat peserta lain."
                                 : admin
                                   ? "Tambahkan peserta dan tentukan kecamatannya."
                                   : "Panitia belum memasukkan peserta untuk kecamatan Anda."}

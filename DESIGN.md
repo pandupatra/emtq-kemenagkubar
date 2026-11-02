@@ -6,6 +6,8 @@ Pembaruan identitas sesuai permintaan pengguna: kiri atas dashboard dan login me
 
 Dial: ENERGY 1 / RHYTHM 1 / MOTION 1.
 
+Halaman login menampilkan logo Kemenag, LPTQ, dan Pemkab Kutai Barat dalam satu baris dengan proporsi asli, berukuran lebih besar daripada logo navigasi. Logo Pemkab menggunakan gambar transparan yang diberikan pengguna; logo Kemenag menggunakan aset proyek Kemenag Kutai Barat yang sudah tersedia.
+
 - Hijau tua dan kertas krem mengikuti mockup, menjaga identitas ruang kerja MTQ dan hierarki tindakan utama.
 - Georgia pada judul dan nama Maqro memberi karakter cetakan resmi; Segoe UI pada formulir dan tabel menjaga keterbacaan.
 - Sidebar desktop dan menu berlabel pada layar sempit mempertahankan struktur navigasi mockup tanpa memadatkan kolom.

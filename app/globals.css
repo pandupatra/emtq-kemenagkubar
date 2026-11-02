@@ -579,6 +579,52 @@ small {
 .filters .field {
   flex: 1 1 180px;
 }
+.people-filters .field {
+  min-width: 0;
+}
+.people-table-caption {
+  text-align: left;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+  color: var(--body);
+}
+.people-table-caption .field {
+  width: 100%;
+  max-width: 280px;
+}
+@media (max-width: 699px) {
+  .people-table-caption {
+    display: block;
+    width: 100%;
+  }
+}
+.table-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+}
+.table-sort:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.people-filter-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.people-filter-summary p {
+  margin: 0;
+}
 .participant-results {
   display: grid;
   gap: 16px;
@@ -692,6 +738,28 @@ small {
 }
 .login-context .brand {
   color: #fffefa;
+}
+.brand-login {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+}
+.login-logos {
+  display: flex;
+  align-items: center;
+  gap: clamp(16px, 3vw, 28px);
+  max-width: 100%;
+}
+.login-logos img {
+  width: 80px;
+  height: 88px;
+  object-fit: contain;
+}
+@media (min-width: 700px) {
+  .login-logos img {
+    width: 104px;
+    height: 112px;
+  }
 }
 .login-context h1 {
   font-size: clamp(31px, 4vw, 53px);
