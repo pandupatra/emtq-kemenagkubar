@@ -1,5 +1,18 @@
 import type { Metadata } from "next";
+import { Montserrat, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-plus-jakarta-sans",
+  display: "swap",
+});
+
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  variable: "--font-heading",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.lptqkubar.id"),
   icons: { icon: "/logo-lptq.png", apple: "/logo-lptq.png" },
@@ -34,7 +47,11 @@ export default function Layout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="id" suppressHydrationWarning>
+    <html
+      lang="id"
+      className={`${plusJakartaSans.variable} ${montserrat.variable}`}
+      suppressHydrationWarning
+    >
       <body>{children}</body>
     </html>
   );

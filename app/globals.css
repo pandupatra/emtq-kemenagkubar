@@ -24,7 +24,7 @@ body {
   background: var(--paper);
   color: var(--body);
   font:
-    15px/1.5 "Segoe UI",
+    15px/1.5 var(--font-plus-jakarta-sans),
     Arial,
     sans-serif;
 }
@@ -100,10 +100,19 @@ p {
   margin-top: 0;
   overflow-wrap: anywhere;
 }
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading), sans-serif;
+  font-weight: 600;
+}
 h1 {
   font:
-    400 clamp(30px, 3vw, 42px)/1.13 Georgia,
-    serif;
+    600 clamp(30px, 3vw, 42px)/1.13 var(--font-heading),
+    sans-serif;
   color: var(--ink);
   letter-spacing: -0.6px;
   margin-bottom: 12px;
@@ -190,14 +199,14 @@ small {
 }
 .wordmark {
   font:
-    700 29px Georgia,
-    serif;
+    700 29px var(--font-heading),
+    sans-serif;
   letter-spacing: -1px;
   color: var(--ink);
 }
 .wordmark span {
   font:
-    11px "Segoe UI",
+    11px var(--font-plus-jakarta-sans),
     Arial,
     sans-serif;
   letter-spacing: 0;
@@ -229,8 +238,8 @@ small {
 .brand-name strong {
   display: block;
   font:
-    700 24px Georgia,
-    serif;
+    700 24px var(--font-heading),
+    sans-serif;
   letter-spacing: -0.4px;
 }
 .brand-name span {
@@ -634,8 +643,8 @@ small {
 }
 .number {
   font:
-    18px Georgia,
-    serif;
+    18px var(--font-plus-jakarta-sans),
+    sans-serif;
   color: var(--muted);
   min-width: 38px;
   padding-top: 1px;
@@ -945,8 +954,8 @@ small {
 }
 .event-stamp {
   font:
-    14px Georgia,
-    serif;
+    14px var(--font-plus-jakarta-sans),
+    sans-serif;
   border-top: 1px solid #ffffff50;
   padding-top: 18px;
   margin-top: 25px;
@@ -994,8 +1003,8 @@ small {
 .stepper span {
   display: block;
   font:
-    19px Georgia,
-    serif;
+    19px var(--font-plus-jakarta-sans),
+    sans-serif;
   margin-bottom: 5px;
 }
 .draw-layout {
@@ -1046,8 +1055,8 @@ dd {
 }
 .drawing h2 {
   font:
-    30px Georgia,
-    serif;
+    600 30px var(--font-heading),
+    sans-serif;
 }
 .loading-bar {
   height: 4px;
@@ -1075,8 +1084,8 @@ dd {
 }
 .receipt-head h2 {
   font:
-    24px Georgia,
-    serif;
+    600 24px var(--font-heading),
+    sans-serif;
 }
 .receipt-head p {
   font-size: 12px;
@@ -1088,15 +1097,15 @@ dd {
 }
 .package-code {
   font:
-    clamp(42px, 7vw, 66px) Georgia,
-    serif;
+    clamp(42px, 7vw, 66px) var(--font-plus-jakarta-sans),
+    sans-serif;
   color: var(--ink);
   margin: 12px 0;
 }
 .maqro-result h2 {
   font:
-    29px Georgia,
-    serif;
+    600 29px var(--font-heading),
+    sans-serif;
 }
 .receipt-foot {
   font-size: 11px;
@@ -1147,8 +1156,8 @@ dialog::backdrop {
 }
 .dialog-head h2 {
   font:
-    27px Georgia,
-    serif;
+    600 27px var(--font-heading),
+    sans-serif;
   margin: 0;
 }
 .dialog-head .btn {
@@ -1725,8 +1734,8 @@ dialog::backdrop {
 }
 .draw-card-seal {
   font:
-    42px Georgia,
-    serif;
+    42px var(--font-plus-jakarta-sans),
+    sans-serif;
   letter-spacing: 0;
 }
 .drawing p {
