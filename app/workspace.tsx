@@ -16,6 +16,7 @@ import ActionIcon from "./action-icon";
 import ParticipantResults from "./participant-results";
 import DrawPicker from "./draw-picker";
 import WorkSummary from "./work-summary";
+import { useInitialPageReady } from "./initial-page-loader";
 
 const titles: Record<string, string> = {
   dashboard: "Ringkasan kerja",
@@ -242,6 +243,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [feedback, setFeedback] = useState("");
+  useInitialPageReady(!loading);
   const [page, setPage] = useState("dashboard"),
     [menu, setMenu] = useState(false),
     [dark, setDark] = useState(false);

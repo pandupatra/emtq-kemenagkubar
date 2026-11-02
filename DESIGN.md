@@ -6,6 +6,8 @@ Pembaruan identitas sesuai permintaan pengguna: kiri atas dashboard dan login me
 
 Dial: ENERGY 1 / RHYTHM 1 / MOTION 1.
 
+Saat pertama dibuka atau di-refresh, aplikasi menampilkan loading layar penuh dengan logo LPTQ, warna tema, dan indikator berputar. Loading menunggu dokumen, pemeriksaan sesi, dan pemuatan data awal selesai sebelum memudar selama 220 ms, sehingga halaman login tidak terlihat sesaat sebelum dashboard. Status selesai disimpan selama halaman terpasang agar loading tidak berulang saat berpindah menu atau memuat ulang data. Gerakan indikator dan transisi dinonaktifkan ketika pengguna memilih pengurangan gerakan; pemuatan konten berikutnya tetap memakai skeleton yang sudah ada.
+
 Halaman login menampilkan logo Kemenag, LPTQ, dan Pemkab Kutai Barat dalam satu baris dengan proporsi asli, berukuran lebih besar daripada logo navigasi. Logo Pemkab menggunakan gambar transparan yang diberikan pengguna; logo Kemenag menggunakan aset proyek Kemenag Kutai Barat yang sudah tersedia.
 
 - Hijau tua dan kertas krem mengikuti mockup, menjaga identitas ruang kerja MTQ dan hierarki tindakan utama.
