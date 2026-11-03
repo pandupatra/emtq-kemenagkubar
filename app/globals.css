@@ -218,7 +218,8 @@ small {
   border-color: var(--green);
 }
 .btn.primary:hover:not(:disabled) {
-  filter: brightness(0.92);
+  background: color-mix(in srgb, var(--green) 92%, black);
+  border-color: color-mix(in srgb, var(--green) 92%, black);
 }
 .btn.danger {
   color: var(--danger);
