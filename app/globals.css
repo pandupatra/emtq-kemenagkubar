@@ -490,6 +490,21 @@ small {
   display: grid;
   gap: 24px;
 }
+.participant-breakdowns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr));
+  align-items: start;
+  gap: 24px;
+  min-width: 0;
+}
+.participant-breakdowns .district-overview-table th:first-child {
+  overflow-wrap: anywhere;
+}
+.participant-breakdowns
+  [aria-labelledby="category-overview-title"]
+  th:first-child {
+  width: 75%;
+}
 .overview-panel h2 {
   margin-bottom: 16px;
 }

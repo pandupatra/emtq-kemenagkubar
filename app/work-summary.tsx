@@ -11,6 +11,11 @@ export default function WorkSummary({
   openPeople: (filter: Filter) => void;
 }) {
   const summary = summarizeParticipants(data);
+  const categories = data.categories.map((category) => ({
+    ...category,
+    total: data.people.filter((person) => person.entries.includes(category.id))
+      .length,
+  }));
   const number = new Intl.NumberFormat("id-ID");
   const percent = summary.total
     ? Math.round((summary.drawn / summary.total) * 100)
@@ -65,106 +70,155 @@ export default function WorkSummary({
           dihitung.
         </p>
       </section>
-      <section
-        className="panel district-overview"
-        aria-labelledby="district-overview-title"
-      >
-        <div className="section-head">
-          <div>
-            <h2 id="district-overview-title">Peserta per kecamatan</h2>
-            <p className="hint">
-              Bandingkan jumlah peserta dan progres undian setiap kafilah.
-            </p>
-          </div>
-          <button className="btn" onClick={() => openPeople({})}>
-            Lihat semua peserta
-          </button>
-        </div>
-        {summary.districts.length ? (
-          <div
-            className="district-table-scroll"
-            tabIndex={0}
-            role="region"
-            aria-label="Rekap peserta per kecamatan"
-          >
-            <table className="district-overview-table">
-              <caption className="sr-only">
-                Jumlah peserta, peserta yang sudah mengundi dan belum mengundi
-                per kecamatan
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">Kecamatan</th>
-                  <th scope="col" className="numeric">
-                    Peserta
-                  </th>
-                  <th scope="col" className="numeric">
-                    Sudah <span>mengundi</span>
-                  </th>
-                  <th scope="col" className="numeric">
-                    Belum <span>mengundi</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {summary.districts.map((row) => (
-                  <tr key={row.district}>
-                    <th scope="row">
-                      <button
-                        className="district-name"
-                        onClick={() => openPeople({ district: row.district })}
-                      >
-                        {row.district}
-                      </button>
-                    </th>
-                    <td className="numeric">{number.format(row.total)}</td>
-                    <td className="numeric">{number.format(row.drawn)}</td>
-                    <td className="numeric">
-                      {row.remaining ? (
-                        <button
-                          className="district-remaining"
-                          aria-label={`${row.remaining} peserta belum mengundi di ${row.district}`}
-                          onClick={() =>
-                            openPeople({
-                              district: row.district,
-                              status: "not-drawn",
-                            })
-                          }
-                        >
-                          {number.format(row.remaining)}
-                        </button>
-                      ) : (
-                        "0"
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <th scope="row">Total</th>
-                  <td className="numeric">{number.format(summary.total)}</td>
-                  <td className="numeric">{number.format(summary.drawn)}</td>
-                  <td className="numeric">
-                    {number.format(summary.remaining)}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        ) : (
-          <div className="empty">
-            <h3>Belum ada data peserta</h3>
-            <p>
-              Tambahkan peserta melalui Daftar peserta untuk mulai memantau
-              undian.
-            </p>
+      <div className="participant-breakdowns">
+        <section
+          className="panel district-overview"
+          aria-labelledby="district-overview-title"
+        >
+          <div className="section-head">
+            <div>
+              <h2 id="district-overview-title">Peserta per kecamatan</h2>
+              <p className="hint">
+                Bandingkan jumlah peserta dan progres undian setiap kafilah.
+              </p>
+            </div>
             <button className="btn" onClick={() => openPeople({})}>
-              Buka daftar peserta
+              Lihat semua peserta
             </button>
           </div>
-        )}
-      </section>
+          {summary.districts.length ? (
+            <div
+              className="district-table-scroll"
+              tabIndex={0}
+              role="region"
+              aria-label="Rekap peserta per kecamatan"
+            >
+              <table className="district-overview-table">
+                <caption className="sr-only">
+                  Jumlah peserta, peserta yang sudah mengundi dan belum mengundi
+                  per kecamatan
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Kecamatan</th>
+                    <th scope="col" className="numeric">
+                      Peserta
+                    </th>
+                    <th scope="col" className="numeric">
+                      Sudah <span>mengundi</span>
+                    </th>
+                    <th scope="col" className="numeric">
+                      Belum <span>mengundi</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summary.districts.map((row) => (
+                    <tr key={row.district}>
+                      <th scope="row">
+                        <button
+                          className="district-name"
+                          onClick={() => openPeople({ district: row.district })}
+                        >
+                          {row.district}
+                        </button>
+                      </th>
+                      <td className="numeric">{number.format(row.total)}</td>
+                      <td className="numeric">{number.format(row.drawn)}</td>
+                      <td className="numeric">
+                        {row.remaining ? (
+                          <button
+                            className="district-remaining"
+                            aria-label={`${row.remaining} peserta belum mengundi di ${row.district}`}
+                            onClick={() =>
+                              openPeople({
+                                district: row.district,
+                                status: "not-drawn",
+                              })
+                            }
+                          >
+                            {number.format(row.remaining)}
+                          </button>
+                        ) : (
+                          "0"
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th scope="row">Total</th>
+                    <td className="numeric">{number.format(summary.total)}</td>
+                    <td className="numeric">{number.format(summary.drawn)}</td>
+                    <td className="numeric">
+                      {number.format(summary.remaining)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          ) : (
+            <div className="empty">
+              <h3>Belum ada data peserta</h3>
+              <p>
+                Tambahkan peserta melalui Daftar peserta untuk mulai memantau
+                undian.
+              </p>
+              <button className="btn" onClick={() => openPeople({})}>
+                Buka daftar peserta
+              </button>
+            </div>
+          )}
+        </section>
+        <section
+          className="panel district-overview"
+          aria-labelledby="category-overview-title"
+        >
+          <div className="section-head">
+            <div>
+              <h2 id="category-overview-title">Peserta per cabang</h2>
+              <p className="hint">
+                Peserta dihitung sekali pada setiap cabang yang diikuti.
+              </p>
+            </div>
+          </div>
+          {categories.length ? (
+            <div
+              className="district-table-scroll"
+              tabIndex={0}
+              role="region"
+              aria-label="Rekap peserta per cabang"
+            >
+              <table className="district-overview-table">
+                <caption className="sr-only">Jumlah peserta per cabang</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Cabang</th>
+                    <th scope="col" className="numeric">
+                      Peserta
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {categories.map((category) => (
+                    <tr key={category.id}>
+                      <th scope="row">{category.name}</th>
+                      <td className="numeric">
+                        {number.format(category.total)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="empty">
+              <h3>Belum ada data cabang</h3>
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }
