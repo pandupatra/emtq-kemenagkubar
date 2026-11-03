@@ -48,7 +48,13 @@ const formValues = (event: FormEvent<HTMLFormElement>) => {
 };
 const text = (f: FormData, key: string) => String(f.get(key) || "").trim();
 type MutationAction =
-  "person" | "session" | "package" | "account" | "draw" | "cancel";
+  | "person"
+  | "delete-person"
+  | "session"
+  | "package"
+  | "account"
+  | "draw"
+  | "cancel";
 type MutableCollection =
   "people" | "sessions" | "packages" | "profiles" | "results";
 type PendingChange = {
@@ -473,10 +479,12 @@ export default function Workspace({ configured }: { configured: boolean }) {
     setError("");
     setFeedback("");
     try {
-      const { data: result, error: e } = await supabase().rpc("maqro_action", {
-        action,
-        payload,
-      });
+      const { data: result, error: e } =
+        action === "delete-person"
+          ? await supabase().rpc("delete_participant", {
+              participant_id: payload.id,
+            })
+          : await supabase().rpc("maqro_action", { action, payload });
       if (e) throw e;
       setModal(null);
       setFeedback(message);
@@ -510,6 +518,19 @@ export default function Workspace({ configured }: { configured: boolean }) {
     payload: Record<string, unknown>,
     result: unknown,
   ) {
+    if (action === "delete-person") {
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              people: current.people.filter(
+                (person) => person.id !== payload.id,
+              ),
+            }
+          : current,
+      );
+      return;
+    }
     const collection: MutableCollection = {
       person: "people",
       session: "sessions",
@@ -799,6 +820,17 @@ export default function Workspace({ configured }: { configured: boolean }) {
             onClick={() => setModal({ kind: "person", person: p })}
           >
             <ActionIcon name="edit" />
+          </button>
+        ) : null}
+        {admin ? (
+          <button
+            className="btn danger icon-btn"
+            title="Hapus peserta"
+            disabled={busy}
+            aria-label={`Hapus peserta ${p.name}`}
+            onClick={() => setModal({ kind: "delete-person", person: p })}
+          >
+            <ActionIcon name="trash" />
           </button>
         ) : null}
         <button
@@ -1863,6 +1895,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
             {
               person: modal.person ? "Edit peserta" : "Tambah peserta",
               detail: "Detail peserta",
+              "delete-person": "Hapus peserta",
               package: "Tambah maqro",
               cancel: "Batalkan hasil undian",
               account: "Pengaturan akun",
@@ -1880,6 +1913,42 @@ export default function Workspace({ configured }: { configured: boolean }) {
           busy={busy}
         >
           {errorBox}
+          {modal.kind === "delete-person" && modal.person && admin ? (
+            <>
+              <p>
+                Hapus peserta <strong>{modal.person.name}</strong> dari
+                kecamatan <strong>{modal.person.district}</strong>?
+              </p>
+              <p className="hint">
+                Data yang dihapus tidak dapat dikembalikan. Peserta yang
+                memiliki riwayat undian, termasuk hasil yang dibatalkan, tidak
+                dapat dihapus.
+              </p>
+              <div className="actions dialog-actions">
+                <button className="btn" disabled={busy} onClick={close}>
+                  Batal
+                </button>
+                <button
+                  className="btn danger"
+                  disabled={
+                    busy ||
+                    data.results.some(
+                      (result) => result.person_id === modal.person?.id,
+                    )
+                  }
+                  onClick={() =>
+                    void act(
+                      "delete-person",
+                      { id: modal.person!.id },
+                      "Data peserta dihapus.",
+                    )
+                  }
+                >
+                  {busy ? "Menghapus…" : "Hapus peserta"}
+                </button>
+              </div>
+            </>
+          ) : null}
           {modal.kind === "district-account" && admin ? (
             <form className="form-stack" onSubmit={saveDistrictAccount}>
               <Field label="Kecamatan" name="district">
