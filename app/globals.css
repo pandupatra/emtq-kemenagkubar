@@ -352,6 +352,9 @@ small {
 .mobile-toggle {
   flex-shrink: 0;
   gap: 8px;
+  padding: 10px;
+  border: 0;
+  background: transparent;
 }
 .side-heading {
   margin-bottom: 20px;
@@ -1474,15 +1477,6 @@ dialog::backdrop {
   .topbar {
     padding: 16px 30px;
   }
-  .side {
-    inset: auto;
-    z-index: auto;
-    width: auto;
-    visibility: visible;
-    transform: none;
-    transition: none;
-    padding: 18px 30px;
-  }
   .form-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -1552,6 +1546,12 @@ dialog::backdrop {
   }
   .side {
     position: sticky;
+    inset: auto;
+    z-index: auto;
+    width: auto;
+    visibility: visible;
+    transform: none;
+    transition: none;
     top: 0;
     height: 100dvh;
     overflow-y: auto;

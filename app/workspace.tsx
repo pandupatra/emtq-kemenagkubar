@@ -1068,6 +1068,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
             className="btn mobile-toggle"
             ref={menuTrigger}
             type="button"
+            aria-label="Buka menu navigasi"
             aria-expanded={menu}
             aria-controls="navigation"
             onClick={() => setMenu(true)}
@@ -1083,7 +1084,6 @@ export default function Workspace({ configured }: { configured: boolean }) {
             >
               <path d="M3 6h18M3 12h18M3 18h18" />
             </svg>
-            Menu
           </button>
         </header>
         {menu && (
