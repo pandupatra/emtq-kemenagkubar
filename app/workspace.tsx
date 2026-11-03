@@ -16,6 +16,7 @@ import ActionIcon from "./action-icon";
 import ParticipantResults from "./participant-results";
 import DrawPicker from "./draw-picker";
 import WorkSummary from "./work-summary";
+import BankTable from "./bank-table";
 import { useInitialPageReady } from "./initial-page-loader";
 
 const titles: Record<string, string> = {
@@ -525,6 +526,9 @@ export default function Workspace({ configured }: { configured: boolean }) {
               ...current,
               people: current.people.filter(
                 (person) => person.id !== payload.id,
+              ),
+              results: current.results.filter(
+                (result) => result.person_id !== payload.id,
               ),
             }
           : current,
@@ -1577,48 +1581,14 @@ export default function Workspace({ configured }: { configured: boolean }) {
                     </>
                   ) : null}
                   {page === "bank" && admin ? (
-                    <div className="cardgrid">
-                      {data.categories.map((c) => (
-                        <section
-                          className="panel"
-                          key={c.id}
-                          aria-busy={
-                            pendingChange?.action === "package" &&
-                            pendingChange.categoryId === c.id
-                          }
-                        >
-                          <h2>{c.name}</h2>
-                          <p className="hint">
-                            {
-                              data.packages.filter(
-                                (m) => m.category_id === c.id,
-                              ).length
-                            }{" "}
-                            paket
-                          </p>
-                          {data.packages
-                            .filter((m) => m.category_id === c.id)
-                            .map((m) => (
-                              <article className="bank-item" key={m.id}>
-                                <h3>{m.code}</h3>
-                                <p>
-                                  {m.surah}
-                                  <br />
-                                  Ayat / rentang materi: {m.verses}
-                                </p>
-                              </article>
-                            ))}
-                          {!data.packages.some(
-                            (m) => m.category_id === c.id,
-                          ) ? (
-                            <Empty title="Belum ada paket">
-                              Tambahkan paket resmi sebelum membuka sesi cabang
-                              ini.
-                            </Empty>
-                          ) : null}
-                        </section>
-                      ))}
-                    </div>
+                    <BankTable
+                      packages={data.packages}
+                      categories={data.categories}
+                      people={data.people}
+                      results={data.results}
+                      busy={busy}
+                      onView={(result) => setModal({ kind: "receipt", result })}
+                    />
                   ) : null}
                   {page === "accounts" && admin ? (
                     <section className="panel data-panel">
@@ -1920,9 +1890,8 @@ export default function Workspace({ configured }: { configured: boolean }) {
                 kecamatan <strong>{modal.person.district}</strong>?
               </p>
               <p className="hint">
-                Data yang dihapus tidak dapat dikembalikan. Peserta yang
-                memiliki riwayat undian, termasuk hasil yang dibatalkan, tidak
-                dapat dihapus.
+                Data peserta dan seluruh riwayat undiannya, termasuk hasil yang
+                dibatalkan, akan dihapus permanen dan tidak dapat dikembalikan.
               </p>
               <div className="actions dialog-actions">
                 <button className="btn" disabled={busy} onClick={close}>
@@ -1930,17 +1899,12 @@ export default function Workspace({ configured }: { configured: boolean }) {
                 </button>
                 <button
                   className="btn danger"
-                  disabled={
-                    busy ||
-                    data.results.some(
-                      (result) => result.person_id === modal.person?.id,
-                    )
-                  }
+                  disabled={busy}
                   onClick={() =>
                     void act(
                       "delete-person",
                       { id: modal.person!.id },
-                      "Data peserta dihapus.",
+                      "Data peserta dan riwayat undiannya dihapus.",
                     )
                   }
                 >

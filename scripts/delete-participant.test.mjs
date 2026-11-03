@@ -12,7 +12,7 @@ await client.connect();
 try {
   await client.query("begin");
   const sql = fs.readFileSync(
-    "supabase/migrations/202611020001_admin_delete_participant.sql",
+    "supabase/migrations/20261103004202_delete_participant_draw_history.sql",
     "utf8",
   );
   await client.query(sql.replace(/^begin;/, "").replace(/commit;\s*$/, ""));
@@ -63,15 +63,53 @@ try {
     await client.query("select person_id from public.results limit 1")
   ).rows[0];
   assert.ok(history, "Fixture must include an undian result");
+  await client.query("savepoint active_history");
   await client.query("set local role authenticated");
-  await rejects(() => call(history.person_id), /riwayat undian/);
-  await client.query("reset role");
+  const deleted = (await call(history.person_id)).rows[0].result;
+  assert.ok(deleted.deleted_results > 0);
+  assert.equal(
+    (
+      await client.query(
+        "select count(*)::int n from public.results where person_id=$1",
+        [history.person_id],
+      )
+    ).rows[0].n,
+    0,
+  );
+  assert.equal(
+    (
+      await client.query(
+        "select count(*)::int n from public.people where id=$1",
+        [history.person_id],
+      )
+    ).rows[0].n,
+    0,
+  );
+  await client.query("rollback to savepoint active_history");
   await client.query(
     "update public.results set cancelled=true where person_id=$1",
     [history.person_id],
   );
   await client.query("set local role authenticated");
-  await rejects(() => call(history.person_id), /riwayat undian/);
+  assert.ok((await call(history.person_id)).rows[0].result.deleted_results > 0);
+  assert.equal(
+    (
+      await client.query(
+        "select count(*)::int n from public.results where person_id=$1",
+        [history.person_id],
+      )
+    ).rows[0].n,
+    0,
+  );
+  assert.equal(
+    (
+      await client.query(
+        "select count(*)::int n from public.people where id=$1",
+        [history.person_id],
+      )
+    ).rows[0].n,
+    0,
+  );
   assert.equal((await call(person)).rows[0].result.id, person);
   assert.equal(
     (
@@ -95,7 +133,7 @@ try {
   await client.query("set local role anon");
   await rejects(() => call(person), /permission denied/);
   console.log(
-    "PASS: admin delete, audit log, district/anonymous/inactive denial, active/cancelled history protection, repeated delete; all changes rolled back",
+    "PASS: admin delete, audit log, district/anonymous/inactive denial, active/cancelled history deletion, repeated delete; all changes rolled back",
   );
 } finally {
   await client.query("rollback");
