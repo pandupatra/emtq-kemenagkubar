@@ -282,10 +282,6 @@ function Receipt({ result: r, person }: { result: Result; person?: Person }) {
           <dd>{r.name}</dd>
         </div>
         <div>
-          <dt>ID peserta</dt>
-          <dd className="identifier">{r.person_id}</dd>
-        </div>
-        <div>
           <dt>No. peserta</dt>
           <dd>{participantNumber(person?.participant_number, r.category)}</dd>
         </div>

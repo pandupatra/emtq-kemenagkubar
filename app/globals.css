@@ -904,6 +904,7 @@ small {
 }
 .table-sort {
   display: inline-flex;
+  vertical-align: middle;
   align-items: center;
   gap: 8px;
   min-height: 44px;
