@@ -7,6 +7,7 @@ import DataTable, {
 } from "./data-table";
 
 import { useState } from "react";
+import { participantNumber } from "@/lib/competition-codes";
 import type { Category, Person, Result, Session } from "@/lib/types";
 
 export default function DrawPicker({
@@ -64,7 +65,7 @@ export default function DrawPicker({
   const visible = rows.filter(
     (r) =>
       (status === "all" || r.status === status) &&
-      `${r.person.name} ${r.person.gender} ${r.person.participant_number || ""}`
+      `${r.person.name} ${r.person.gender} ${participantNumber(r.person.participant_number, category(r.session.category_id))}`
         .toLocaleLowerCase("id")
         .includes(query.trim().toLocaleLowerCase("id")),
   );
@@ -175,7 +176,11 @@ export default function DrawPicker({
                       <TableCell data-label="Peserta">
                         <strong>{person.name}</strong>
                         <small>
-                          No. peserta: {person.participant_number || "—"}
+                          No. peserta:{" "}
+                          {participantNumber(
+                            person.participant_number,
+                            category(rowSession.category_id),
+                          )}
                         </small>
                         <small>{person.gender}</small>
                       </TableCell>

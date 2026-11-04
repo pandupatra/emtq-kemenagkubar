@@ -17,6 +17,7 @@ export default function BankTable({
   results,
   busy,
   onView,
+  onEdit,
 }: {
   packages: Package[];
   categories: Category[];
@@ -24,6 +25,7 @@ export default function BankTable({
   results: Result[];
   busy: boolean;
   onView: (result: Result) => void;
+  onEdit: (pack: Package) => void;
 }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
@@ -178,6 +180,9 @@ export default function BankTable({
                 <TableCell component="th" scope="col">
                   Penerima undian
                 </TableCell>
+                <TableCell component="th" scope="col">
+                  Tindakan
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -228,6 +233,17 @@ export default function BankTable({
                     ) : (
                       <span className="muted">Belum ada penerima</span>
                     )}
+                  </TableCell>
+                  <TableCell data-label="Tindakan">
+                    <button
+                      className="btn icon-btn"
+                      disabled={busy}
+                      onClick={() => onEdit(row)}
+                      title="Edit maqro"
+                      aria-label={`Edit maqro ${row.surah}, ${row.verses}`}
+                    >
+                      <ActionIcon name="edit" />
+                    </button>
                   </TableCell>
                 </TableRow>
               ))}

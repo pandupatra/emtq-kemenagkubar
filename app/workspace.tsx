@@ -15,7 +15,7 @@ import {
   type ReactNode,
 } from "react";
 import { supabase } from "@/lib/supabase";
-import type { Data, Person, Result, Session } from "@/lib/types";
+import type { Data, Package, Person, Result, Session } from "@/lib/types";
 import { LoginSkeleton, WorkspaceSkeleton } from "./skeletons";
 import Brand from "./brand";
 import ActionIcon from "./action-icon";
@@ -23,6 +23,7 @@ import ParticipantResults from "./participant-results";
 import DrawPicker from "./draw-picker";
 import WorkSummary from "./work-summary";
 import BankTable from "./bank-table";
+import { competitionCode, participantNumber } from "@/lib/competition-codes";
 import { useInitialPageReady } from "./initial-page-loader";
 
 const titles: Record<string, string> = {
@@ -148,6 +149,71 @@ function Field({
   );
 }
 
+function ParticipantEntryFields({
+  person,
+  categories,
+}: {
+  person?: Person;
+  categories: Data["categories"];
+}) {
+  const [categoryId, setCategoryId] = useState(
+    person?.entries.length === 1 ? person.entries[0] : "",
+  );
+  const categoryName = categories.find((c) => c.id === categoryId)?.name || "";
+  const code = competitionCode(categoryName) || "";
+  const storedNumber = person?.participant_number || "";
+  const serial = storedNumber.replace(
+    /^(?:TQ\.[TARD]|Q\.M[LD]\.[RD]|HQ\.(?:1|5|10|20|30)|FQ|SY\.Q|KQ\.(?:DL|N|H|D|K)|MH)-/i,
+    "",
+  );
+  return (
+    <>
+      <Field label="Cabang yang diikuti" name="entries">
+        <select
+          id="entries"
+          name="entries"
+          required
+          value={categoryId}
+          onChange={(event) => setCategoryId(event.target.value)}
+        >
+          <option value="" disabled>
+            Pilih cabang lomba
+          </option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </Field>
+      <Field
+        label="Nomor urut peserta"
+        name="participant_number"
+        required={false}
+      >
+        <div className="participant-number-input">
+          <input
+            aria-label="Kode cabang"
+            value={code ? code + "-" : ""}
+            placeholder="Kode"
+            readOnly
+          />
+          <input
+            id="participant_number"
+            name="participant_number"
+            defaultValue={serial}
+            maxLength={250}
+            aria-describedby="participant-number-hint"
+          />
+        </div>
+      </Field>
+      <p className="hint" id="participant-number-hint">
+        Kode mengikuti cabang yang dipilih. Isi nomor urut peserta, misalnya 01.
+      </p>
+    </>
+  );
+}
+
 function Modal({
   title,
   children,
@@ -199,7 +265,7 @@ function Modal({
   );
 }
 
-function Receipt({ result: r }: { result: Result }) {
+function Receipt({ result: r, person }: { result: Result; person?: Person }) {
   return (
     <article className="receipt">
       <div className="receipt-head">
@@ -218,6 +284,10 @@ function Receipt({ result: r }: { result: Result }) {
         <div>
           <dt>ID peserta</dt>
           <dd className="identifier">{r.person_id}</dd>
+        </div>
+        <div>
+          <dt>No. peserta</dt>
+          <dd>{participantNumber(person?.participant_number, r.category)}</dd>
         </div>
         <div>
           <dt>Kafilah</dt>
@@ -324,6 +394,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
   const [modal, setModal] = useState<{
     kind: string;
     person?: Person;
+    package?: Package;
     id?: string;
     result?: Result;
   } | null>(null);
@@ -341,6 +412,14 @@ export default function Workspace({ configured }: { configured: boolean }) {
     : ["people", "draw"];
   const category = (id: string) =>
     data?.categories.find((c) => c.id === id)?.name || "Cabang tidak tersedia";
+  const personNumbers = (person: Person) =>
+    person.entries.length
+      ? person.entries
+          .map((id) =>
+            participantNumber(person.participant_number, category(id)),
+          )
+          .join(", ")
+      : person.participant_number || "?";
   const updating = (action: MutationAction, id: string) =>
     (pendingChange?.action === action && pendingChange.id === id) ||
     (action === "session" && openingSessions.includes(id));
@@ -500,7 +579,9 @@ export default function Workspace({ configured }: { configured: boolean }) {
             ? await supabase().rpc("delete_draw_history", {
                 result_ids: payload.ids,
               })
-            : await supabase().rpc("maqro_action", { action, payload });
+            : action === "package" && payload.id
+              ? await supabase().rpc("edit_maqro", { payload })
+              : await supabase().rpc("maqro_action", { action, payload });
       if (e) throw e;
       setModal(null);
       setFeedback(message);
@@ -902,7 +983,10 @@ export default function Workspace({ configured }: { configured: boolean }) {
       ...data.results.map((r) => [
         r.id,
         r.name,
-        data.people.find((p) => p.id === r.person_id)?.participant_number || "",
+        participantNumber(
+          data.people.find((p) => p.id === r.person_id)?.participant_number,
+          r.category,
+        ),
         r.district,
         r.category,
         r.surah,
@@ -1052,7 +1136,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
   const visiblePeople = data.people
     .filter((p) => {
       if (
-        !(p.name + " " + p.district + " " + (p.participant_number || ""))
+        !(p.name + " " + p.district + " " + personNumbers(p))
           .toLocaleLowerCase("id")
           .includes(query.trim().toLocaleLowerCase("id"))
       )
@@ -1605,7 +1689,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
                                   <TableCell data-label="Peserta">
                                     <strong>{p.name}</strong>
                                     <small>
-                                      No. peserta: {p.participant_number || "—"}
+                                      No. peserta: {personNumbers(p)}
                                     </small>
                                     <small>{p.gender}</small>
                                   </TableCell>
@@ -1778,6 +1862,9 @@ export default function Workspace({ configured }: { configured: boolean }) {
                       results={data.results}
                       busy={busy}
                       onView={(result) => setModal({ kind: "receipt", result })}
+                      onEdit={(pack) =>
+                        setModal({ kind: "package", package: pack })
+                      }
                     />
                   ) : null}
                   {page === "accounts" && admin ? (
@@ -1915,6 +2002,15 @@ export default function Workspace({ configured }: { configured: boolean }) {
                               <dd>{selection.person.name}</dd>
                             </div>
                             <div>
+                              <dt>No. peserta</dt>
+                              <dd>
+                                {participantNumber(
+                                  selection.person.participant_number,
+                                  category(selection.session.category_id),
+                                )}
+                              </dd>
+                            </div>
+                            <div>
                               <dt>Kecamatan</dt>
                               <dd>{selection.person.district}</dd>
                             </div>
@@ -2001,7 +2097,12 @@ export default function Workspace({ configured }: { configured: boolean }) {
                       {drawStep === 4 && drawResult ? (
                         <>
                           <div className="draw-reveal">
-                            <Receipt result={drawResult} />
+                            <Receipt
+                              result={drawResult}
+                              person={data.people.find(
+                                (p) => p.id === drawResult.person_id,
+                              )}
+                            />
                           </div>
                           <div className="actions receipt-actions">
                             <button
@@ -2061,7 +2162,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
               "delete-history": modal.result
                 ? "Hapus histori undian"
                 : "Hapus seluruh histori undian",
-              package: "Tambah maqro",
+              package: modal.package ? "Edit maqro" : "Tambah maqro",
               cancel: "Batalkan hasil undian",
               account: "Pengaturan akun",
               "district-account": modal.id
@@ -2173,6 +2274,10 @@ export default function Workspace({ configured }: { configured: boolean }) {
           ) : null}
           {modal.kind === "district-account" && admin ? (
             <form className="form-stack" onSubmit={saveDistrictAccount}>
+              <p className="hint">
+                Isi nomor urut saja, misalnya 01. Kode cabang ditambahkan
+                otomatis, misalnya TQ.A-01 untuk Tilawah Anak.
+              </p>
               <Field label="Kecamatan" name="district">
                 <input
                   id="district"
@@ -2291,11 +2396,10 @@ export default function Workspace({ configured }: { configured: boolean }) {
                 name="name"
                 value={modal.person?.name}
               />
-              <Field
-                label="No. peserta"
-                name="participant_number"
-                value={modal.person?.participant_number || ""}
-                required={false}
+              <ParticipantEntryFields
+                key={modal.person?.id || "new"}
+                person={modal.person}
+                categories={data.categories}
               />
               <Field label="Kecamatan" name="district">
                 <select
@@ -2340,23 +2444,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
                   </select>
                 </Field>
               </div>
-              <fieldset className="fieldset">
-                <legend>Cabang yang diikuti *</legend>
-                {data.categories.map((c) => (
-                  <label className="checkline" key={c.id}>
-                    <input
-                      name="entries"
-                      type="checkbox"
-                      value={c.id}
-                      defaultChecked={modal.person?.entries.includes(c.id)}
-                    />
-                    {c.name}
-                  </label>
-                ))}
-              </fieldset>
-              <p className="hint">
-                Pilih minimal satu cabang yang diikuti peserta.
-              </p>
+
               <div className="dialog-actions actions">
                 <button
                   type="button"
@@ -2384,7 +2472,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
               <dl className="review">
                 {[
                   ["Nama peserta", modal.person.name],
-                  ["No. peserta", modal.person.participant_number || "—"],
+                  ["No. peserta", personNumbers(modal.person)],
                   ["Kecamatan", modal.person.district],
                   ["Tanggal lahir", modal.person.birth],
                   ["Kategori peserta", modal.person.gender],
@@ -2410,8 +2498,8 @@ export default function Workspace({ configured }: { configured: boolean }) {
                 const f = formValues(e);
                 void act(
                   "package",
-                  Object.fromEntries(f),
-                  "Maqro ditambahkan.",
+                  { ...Object.fromEntries(f), id: modal.package?.id },
+                  modal.package ? "Maqro diperbarui." : "Maqro ditambahkan.",
                 );
               }}
             >
@@ -2420,7 +2508,18 @@ export default function Workspace({ configured }: { configured: boolean }) {
                 wajib diisi.
               </p>
               <Field label="Cabang" name="category_id">
-                <select name="category_id" id="category_id" required>
+                <select
+                  name="category_id"
+                  id="category_id"
+                  required
+                  defaultValue={modal.package?.category_id}
+                  disabled={Boolean(
+                    modal.package &&
+                    data.results.some(
+                      (r) => r.package_id === modal.package?.id,
+                    ),
+                  )}
+                >
                   {data.categories.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
@@ -2428,8 +2527,43 @@ export default function Workspace({ configured }: { configured: boolean }) {
                   ))}
                 </select>
               </Field>
-              <Field label="Surah / materi" name="surah" />
-              <Field label="Ayat / rentang materi" name="verses" />
+              {modal.package ? (
+                <>
+                  <input
+                    type="hidden"
+                    name="category_id"
+                    value={modal.package.category_id}
+                    disabled={
+                      !data.results.some(
+                        (r) => r.package_id === modal.package?.id,
+                      )
+                    }
+                  />
+                  <p className="hint">
+                    Perubahan berlaku untuk undian berikutnya. Hasil undian lama
+                    tetap tersimpan. Cabang dikunci jika maqro sudah pernah
+                    diundi.
+                  </p>
+                </>
+              ) : null}
+              <Field
+                label="Surah / materi"
+                name="surah"
+                value={modal.package?.surah}
+              />
+              <Field
+                label="Ayat / rentang materi"
+                name="verses"
+                value={modal.package?.verses}
+              />
+              <button
+                type="button"
+                className="btn"
+                onClick={close}
+                disabled={busy}
+              >
+                Batal
+              </button>
               <button className="btn primary" disabled={busy}>
                 Simpan paket
               </button>
@@ -2608,7 +2742,12 @@ export default function Workspace({ configured }: { configured: boolean }) {
           ) : null}
           {modal.kind === "receipt" && modal.result ? (
             <>
-              <Receipt result={modal.result} />
+              <Receipt
+                result={modal.result}
+                person={data.people.find(
+                  (p) => p.id === modal.result?.person_id,
+                )}
+              />
               <div className="actions dialog-actions">
                 <button className="btn primary" onClick={() => window.print()}>
                   Cetak / Simpan PDF

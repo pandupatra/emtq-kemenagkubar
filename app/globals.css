@@ -862,16 +862,23 @@ small {
     table-layout: fixed;
   }
   .bank-table th:nth-child(1) {
-    width: 23%;
+    width: calc(23% - 23px);
   }
   .bank-table th:nth-child(2) {
-    width: 31%;
+    width: calc(31% - 31px);
   }
   .bank-table th:nth-child(3) {
-    width: 17%;
+    width: calc(17% - 17px);
   }
   .bank-table th:nth-child(4) {
-    width: 29%;
+    width: calc(29% - 29px);
+  }
+  .bank-table th:nth-child(5) {
+    width: 100px;
+  }
+  .bank-table th:nth-child(5),
+  .bank-table td[data-label="Tindakan"] {
+    white-space: nowrap;
   }
 }
 @media (max-width: 699px) {
@@ -1031,6 +1038,46 @@ small {
     display: block;
     margin-bottom: 10px;
   }
+}
+.participant-number-input {
+  display: flex;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  transition: border-color 150ms ease;
+}
+.participant-number-input:focus-within {
+  border-color: var(--green);
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+.participant-number-input input {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.participant-number-input input:focus-visible {
+  outline: none;
+}
+.participant-number-input input:first-child {
+  flex: 0 0 7rem;
+  width: 7rem;
+  background: var(--tint);
+  color: var(--ink);
+  font-weight: 600;
+  border-right: 1px solid var(--line);
+  border-radius: 7px 0 0 7px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.participant-number-input input:last-child {
+  flex: 1;
+  min-width: 0;
+  border-radius: 0 7px 7px 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: 0;
 }
 .field {
   min-width: 0;

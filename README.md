@@ -101,3 +101,14 @@ Untuk paket resmi, siapkan JSON dengan format berikut, isi menggunakan materi ya
 Jangan mengisi kode pada JSON. Skrip memvalidasi seluruh kategori dan data sebelum menulis satu batch. Kunci seed dihitung dari kategori, materi, dan rentang ayat sehingga menjalankan file yang sama lagi tidak menggandakan paket. Mengubah materi dianggap paket baru dan tidak menimpa paket atau bukti lama. Materi contoh maupun resmi tidak diklaim telah masuk ke Supabase live sampai seed berhasil dijalankan pada proyek tersebut.
 
 Dokumentasi stack: [Next.js](https://nextjs.org/docs/app/getting-started/installation) dan [Supabase](https://supabase.com/docs/guides/auth).
+
+### Edit maqro
+
+Terapkan `supabase/migrations/20261104030233_edit_maqro.sql` pada Supabase
+sebelum menggunakan tombol **Edit** di Bank maqro. Panitia dapat mengubah
+surah/materi dan rentang ayat. Cabang hanya dapat diubah selama paket belum
+memiliki riwayat undian. Bukti hasil undian lama dipertahankan; perubahan
+materi berlaku untuk undian berikutnya dan tercatat dalam log aktivitas.
+
+Verifikasi lokal: `node scripts/edit-maqro.test.mjs` menggunakan PostgreSQL
+fixture pada port 54329 dan membatalkan seluruh perubahan uji.
