@@ -1,4 +1,10 @@
 "use client";
+import DataTable, {
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+} from "./data-table";
 
 import {
   useCallback,
@@ -51,6 +57,8 @@ const text = (f: FormData, key: string) => String(f.get(key) || "").trim();
 type MutationAction =
   | "person"
   | "delete-person"
+  | "delete-history"
+  | "participant-session"
   | "session"
   | "package"
   | "account"
@@ -196,7 +204,7 @@ function Receipt({ result: r }: { result: Result }) {
     <article className="receipt">
       <div className="receipt-head">
         <div>
-          <div className="wordmark">e-MTQ LPTQ Kubar</div>
+          <div className="wordmark">e-Maqro LPTQ Kubar</div>
           <h2>Bukti hasil undian</h2>
           <p>MTQ Kabupaten Kutai Barat</p>
         </div>
@@ -228,7 +236,6 @@ function Receipt({ result: r }: { result: Result }) {
       </dl>
       <div className="maqro-result">
         <p>Hasil maqro</p>
-        <div className="package-code">{r.code}</div>
         <h2>{r.surah}</h2>
         <p>Ayat / rentang materi: {r.verses}</p>
       </div>
@@ -312,6 +319,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
   const [pendingChange, setPendingChange] = useState<PendingChange | null>(
     null,
   );
+  const [selectedPeople, setSelectedPeople] = useState<string[]>([]);
   const [openingSessions, setOpeningSessions] = useState<string[]>([]);
   const [modal, setModal] = useState<{
     kind: string;
@@ -336,6 +344,8 @@ export default function Workspace({ configured }: { configured: boolean }) {
   const updating = (action: MutationAction, id: string) =>
     (pendingChange?.action === action && pendingChange.id === id) ||
     (action === "session" && openingSessions.includes(id));
+  const allSessionsOpen =
+    !!data?.sessions.length && data.sessions.every((s) => s.open);
   const readySessions =
     data?.sessions.filter(
       (s) =>
@@ -454,6 +464,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
     setPage(next);
     setMenu(false);
     setQuery("");
+    setSelectedPeople([]);
     setSelection(null);
     setDrawStep(1);
     setDrawResult(null);
@@ -485,10 +496,15 @@ export default function Workspace({ configured }: { configured: boolean }) {
           ? await supabase().rpc("delete_participant", {
               participant_id: payload.id,
             })
-          : await supabase().rpc("maqro_action", { action, payload });
+          : action === "delete-history"
+            ? await supabase().rpc("delete_draw_history", {
+                result_ids: payload.ids,
+              })
+            : await supabase().rpc("maqro_action", { action, payload });
       if (e) throw e;
       setModal(null);
       setFeedback(message);
+      if (action === "participant-session") setSelectedPeople([]);
       try {
         await refreshMutation(action, payload, result);
       } catch {
@@ -519,6 +535,18 @@ export default function Workspace({ configured }: { configured: boolean }) {
     payload: Record<string, unknown>,
     result: unknown,
   ) {
+    if (action === "delete-history") {
+      const ids = new Set(payload.ids as string[]);
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              results: current.results.filter((row) => !ids.has(row.id)),
+            }
+          : current,
+      );
+      return;
+    }
     if (action === "delete-person") {
       setData((current) =>
         current
@@ -537,6 +565,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
     }
     const collection: MutableCollection = {
       person: "people",
+      "participant-session": "people",
       session: "sessions",
       package: "packages",
       account: "profiles",
@@ -590,9 +619,11 @@ export default function Workspace({ configured }: { configured: boolean }) {
       return { ...current, [collection]: next } as Data;
     });
   }
-  async function openAllSessions() {
-    if (mutation.current || !admin || !readySessions.length) return;
-    const targets = readySessions;
+  async function toggleAllSessions() {
+    const open = !allSessionsOpen;
+    const targets = open ? readySessions : data?.sessions || [];
+    if (mutation.current || !admin || !targets.length) return;
+    const resultLabel = open ? "dibuka" : "ditutup";
     mutation.current = true;
     setBusy(true);
     setOpeningSessions(targets.map((s) => s.id));
@@ -603,7 +634,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
         targets.map(async (s) => {
           const { error: saveError } = await supabase().rpc("maqro_action", {
             action: "session",
-            payload: { id: s.id, open: true, repeat: false },
+            payload: { id: s.id, open, repeat: false },
           });
           if (saveError) throw saveError;
           try {
@@ -620,16 +651,16 @@ export default function Workspace({ configured }: { configured: boolean }) {
       );
       const stale = outcomes.some((o) => o.status === "fulfilled" && !o.value);
       setFeedback(
-        `${opened} sesi berhasil dibuka.${blockedSessions.length ? ` ${blockedSessions.length} sesi tanpa paket tetap ditutup.` : ""}`,
+        `${opened} sesi berhasil ${resultLabel}.${open && blockedSessions.length ? ` ${blockedSessions.length} sesi tanpa paket tetap ditutup.` : ""}`,
       );
       const messages: string[] = [];
       if (failed.length)
         messages.push(
-          `${failed.length} sesi belum berhasil dibuka: ${failed.map((s) => category(s.category_id)).join(", ")}. Coba kembali setelah memeriksa koneksi dan ketersediaan paket.`,
+          `${failed.length} sesi belum berhasil ${resultLabel}: ${failed.map((s) => category(s.category_id)).join(", ")}. Coba kembali setelah memeriksa koneksi${open ? " dan ketersediaan paket" : ""}.`,
         );
       if (stale)
         messages.push(
-          "Sebagian sesi sudah dibuka, tetapi data terbarunya belum dapat dimuat. Gunakan Muat ulang untuk memperbarui tampilan.",
+          `Sebagian sesi sudah ${resultLabel}, tetapi data terbarunya belum dapat dimuat. Gunakan Muat ulang untuk memperbarui tampilan.`,
         );
       if (messages.length) setError(messages.join(" "));
     } finally {
@@ -859,9 +890,9 @@ export default function Workspace({ configured }: { configured: boolean }) {
       [
         "Nomor bukti",
         "Peserta",
+        "No. peserta",
         "Kecamatan",
         "Kategori",
-        "Paket",
         "Surah / materi",
         "Ayat / rentang materi",
         "Waktu WITA",
@@ -871,9 +902,9 @@ export default function Workspace({ configured }: { configured: boolean }) {
       ...data.results.map((r) => [
         r.id,
         r.name,
+        data.people.find((p) => p.id === r.person_id)?.participant_number || "",
         r.district,
         r.category,
-        r.code,
         r.surah,
         r.verses,
         date(r.created_at),
@@ -918,9 +949,9 @@ export default function Workspace({ configured }: { configured: boolean }) {
         <div className="login">
           <section className="login-context">
             <Brand login />
-            <h1>
+            <h1 className="text-center">
               Selamat datang di{" "}
-              <span style={{ whiteSpace: "nowrap" }}>e-MTQ</span> Kabupaten
+              <span style={{ whiteSpace: "nowrap" }}>e-Maqro</span> Kabupaten
               Kutai Barat
             </h1>
             <div className="event-stamp">MTQ Kabupaten Kutai Barat</div>
@@ -1021,7 +1052,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
   const visiblePeople = data.people
     .filter((p) => {
       if (
-        !(p.name + " " + p.district)
+        !(p.name + " " + p.district + " " + (p.participant_number || ""))
           .toLocaleLowerCase("id")
           .includes(query.trim().toLocaleLowerCase("id"))
       )
@@ -1178,6 +1209,15 @@ export default function Workspace({ configured }: { configured: boolean }) {
                 {descriptions[page] ? <p>{descriptions[page]}</p> : null}
               </div>
               <div className="actions">
+                {page === "people" && admin ? (
+                  <button
+                    className="btn danger"
+                    disabled={!data.results.length || busy}
+                    onClick={() => setModal({ kind: "delete-history" })}
+                  >
+                    Hapus seluruh histori undian
+                  </button>
+                ) : null}
                 {page === "people" ? (
                   <button
                     className="btn"
@@ -1215,10 +1255,14 @@ export default function Workspace({ configured }: { configured: boolean }) {
                 {page === "sessions" && admin ? (
                   <button
                     className="btn primary"
-                    disabled={busy || loading || !readySessions.length}
+                    disabled={
+                      busy ||
+                      loading ||
+                      (!allSessionsOpen && !readySessions.length)
+                    }
                     onClick={() => setModal({ kind: "open-sessions" })}
                   >
-                    Buka semua sesi
+                    {allSessionsOpen ? "Tutup semua sesi" : "Buka semua sesi"}
                   </button>
                 ) : null}
                 <button
@@ -1261,7 +1305,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
                             type="search"
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
-                            placeholder="Nama peserta atau kecamatan"
+                            placeholder="Nama, no. peserta, atau kecamatan"
                           />
                         </div>
                         {admin ? (
@@ -1349,38 +1393,95 @@ export default function Workspace({ configured }: { configured: boolean }) {
                       </p>
                       <section className="panel data-panel">
                         {visiblePeople.length ? (
-                          <table className="table people-table">
-                            <caption className="people-table-caption">
-                              {" "}
-                              <div className="field">
-                                <label htmlFor="people-sort">Urutkan</label>
-                                <select
-                                  id="people-sort"
-                                  value={peopleSort}
-                                  onChange={(e) =>
-                                    setPeopleSort(e.target.value)
-                                  }
-                                >
-                                  <option value="name-asc">Nama A–Z</option>
-                                  <option value="name-desc">Nama Z–A</option>
-                                  {admin ? (
-                                    <option value="district-asc">
-                                      Kecamatan A–Z
-                                    </option>
-                                  ) : null}
-                                  {admin ? (
-                                    <option value="district-desc">
-                                      Kecamatan Z–A
-                                    </option>
-                                  ) : null}
-                                  <option value="youngest">Usia termuda</option>
-                                  <option value="oldest">Usia tertua</option>
-                                </select>
-                              </div>
-                            </caption>
-                            <thead>
-                              <tr>
-                                <th
+                          <DataTable
+                            aria-label="Daftar peserta"
+                            className={`table people-table${admin ? " people-table-admin" : ""}`}
+                          >
+                            {admin ? (
+                              <caption className="people-table-caption">
+                                <div className="actions">
+                                  <span role="status">
+                                    {
+                                      visiblePeople.filter((p) =>
+                                        selectedPeople.includes(p.id),
+                                      ).length
+                                    }{" "}
+                                    peserta dipilih
+                                  </span>
+                                  {[true, false].map((open) => (
+                                    <button
+                                      key={String(open)}
+                                      className="btn"
+                                      disabled={
+                                        busy ||
+                                        !visiblePeople.some((p) =>
+                                          selectedPeople.includes(p.id),
+                                        )
+                                      }
+                                      onClick={() =>
+                                        void act(
+                                          "participant-session",
+                                          {
+                                            ids: visiblePeople
+                                              .filter((p) =>
+                                                selectedPeople.includes(p.id),
+                                              )
+                                              .map((p) => p.id),
+                                            open,
+                                          },
+                                          `Sesi peserta terpilih ${open ? "dibuka" : "ditutup"}.`,
+                                        )
+                                      }
+                                    >
+                                      {open ? "Buka" : "Tutup"} sesi terpilih
+                                    </button>
+                                  ))}
+                                  <button
+                                    className="btn"
+                                    disabled={busy || !selectedPeople.length}
+                                    onClick={() => setSelectedPeople([])}
+                                  >
+                                    Hapus pilihan
+                                  </button>
+                                </div>
+                              </caption>
+                            ) : null}
+                            <TableHead>
+                              <TableRow>
+                                {admin ? (
+                                  <TableCell component="th" scope="col">
+                                    <input
+                                      type="checkbox"
+                                      aria-label="Pilih semua peserta yang tampil"
+                                      disabled={busy}
+                                      checked={
+                                        visiblePeople.length > 0 &&
+                                        visiblePeople.every((p) =>
+                                          selectedPeople.includes(p.id),
+                                        )
+                                      }
+                                      ref={(element) => {
+                                        if (element)
+                                          element.indeterminate =
+                                            visiblePeople.some((p) =>
+                                              selectedPeople.includes(p.id),
+                                            ) &&
+                                            !visiblePeople.every((p) =>
+                                              selectedPeople.includes(p.id),
+                                            );
+                                      }}
+                                      onChange={(event) =>
+                                        setSelectedPeople(
+                                          event.target.checked
+                                            ? visiblePeople.map((p) => p.id)
+                                            : [],
+                                        )
+                                      }
+                                    />
+                                  </TableCell>
+                                ) : null}
+                                <TableCell
+                                  component="th"
                                   scope="col"
                                   aria-sort={
                                     peopleSort === "name-asc"
@@ -1420,8 +1521,9 @@ export default function Workspace({ configured }: { configured: boolean }) {
                                       </svg>
                                     </span>
                                   </button>
-                                </th>
-                                <th
+                                </TableCell>
+                                <TableCell
+                                  component="th"
                                   scope="col"
                                   aria-sort={
                                     peopleSort === "district-asc"
@@ -1465,31 +1567,108 @@ export default function Workspace({ configured }: { configured: boolean }) {
                                   ) : (
                                     "Kecamatan & cabang"
                                   )}
-                                </th>
-                                <th>Hasil undian</th>
-                                <th>Tindakan</th>
-                              </tr>
-                            </thead>
-                            <tbody>
+                                </TableCell>
+                                <TableCell component="th">
+                                  Sesi peserta
+                                </TableCell>
+                                <TableCell component="th">
+                                  Hasil undian
+                                </TableCell>
+                                <TableCell component="th">Tindakan</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
                               {visiblePeople.map((p) => (
-                                <tr
+                                <TableRow
                                   key={p.id}
                                   aria-busy={updating("person", p.id)}
                                 >
-                                  <td data-label="Peserta">
+                                  {admin ? (
+                                    <TableCell data-label="Pilih">
+                                      <input
+                                        type="checkbox"
+                                        aria-label={`Pilih ${p.name}`}
+                                        disabled={busy}
+                                        checked={selectedPeople.includes(p.id)}
+                                        onChange={(event) =>
+                                          setSelectedPeople((current) =>
+                                            event.target.checked
+                                              ? [...current, p.id]
+                                              : current.filter(
+                                                  (id) => id !== p.id,
+                                                ),
+                                          )
+                                        }
+                                      />
+                                    </TableCell>
+                                  ) : null}
+                                  <TableCell data-label="Peserta">
                                     <strong>{p.name}</strong>
+                                    <small>
+                                      No. peserta: {p.participant_number || "—"}
+                                    </small>
                                     <small>{p.gender}</small>
-                                  </td>
-                                  <td data-label="Kecamatan & cabang">
+                                  </TableCell>
+                                  <TableCell data-label="Kecamatan & cabang">
                                     <div>
                                       {p.district}
                                       <small>
                                         {p.entries.map(category).join(", ")}
                                       </small>
                                     </div>
-                                  </td>
-                                  <td data-label="Hasil undian">
+                                  </TableCell>
+                                  <TableCell data-label="Sesi peserta">
+                                    {admin ? (
+                                      <select
+                                        className={`status session-status-select${p.session_open === false ? " warn" : ""}`}
+                                        disabled={busy}
+                                        aria-label={`Status sesi ${p.name}`}
+                                        aria-busy={
+                                          pendingChange?.action ===
+                                            "participant-session" && busy
+                                        }
+                                        value={
+                                          p.session_open === false
+                                            ? "closed"
+                                            : "open"
+                                        }
+                                        onChange={(event) => {
+                                          const open =
+                                            event.target.value === "open";
+                                          void act(
+                                            "participant-session",
+                                            {
+                                              ids: [p.id],
+                                              open,
+                                            },
+                                            `Sesi ${p.name} ${open ? "dibuka" : "ditutup"}.`,
+                                          );
+                                        }}
+                                      >
+                                        <option value="open">Dibuka</option>
+                                        <option value="closed">Ditutup</option>
+                                      </select>
+                                    ) : (
+                                      <span
+                                        className={`status${p.session_open === false ? " warn" : ""}`}
+                                      >
+                                        {p.session_open === false
+                                          ? "Ditutup"
+                                          : "Dibuka"}
+                                      </span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell data-label="Hasil undian">
                                     <ParticipantResults
+                                      onDelete={
+                                        admin
+                                          ? (result) =>
+                                              setModal({
+                                                kind: "delete-history",
+                                                result,
+                                              })
+                                          : undefined
+                                      }
                                       results={data.results.filter(
                                         (r) => r.person_id === p.id,
                                       )}
@@ -1507,14 +1686,14 @@ export default function Workspace({ configured }: { configured: boolean }) {
                                           : undefined
                                       }
                                     />
-                                  </td>
-                                  <td data-label="Tindakan">
+                                  </TableCell>
+                                  <TableCell data-label="Tindakan">
                                     {personActions(p)}
-                                  </td>
-                                </tr>
+                                  </TableCell>
+                                </TableRow>
                               ))}
-                            </tbody>
-                          </table>
+                            </TableBody>
+                          </DataTable>
                         ) : (
                           <div className="panel-inset">
                             <Empty title="Peserta tidak ditemukan">
@@ -1537,16 +1716,27 @@ export default function Workspace({ configured }: { configured: boolean }) {
                       </div>
                       <section className="panel data-panel section-gap">
                         {data.sessions.length ? (
-                          <table className="table sessions-table">
-                            <thead>
-                              <tr>
-                                <th scope="col">Cabang</th>
-                                <th scope="col">Paket</th>
-                                <th scope="col">Status</th>
-                                <th scope="col">Tindakan</th>
-                              </tr>
-                            </thead>
-                            <tbody>
+                          <DataTable
+                            aria-label="Cabang dan sesi"
+                            className="table sessions-table"
+                          >
+                            <TableHead>
+                              <TableRow>
+                                <TableCell component="th" scope="col">
+                                  Cabang
+                                </TableCell>
+                                <TableCell component="th" scope="col">
+                                  Paket
+                                </TableCell>
+                                <TableCell component="th" scope="col">
+                                  Status
+                                </TableCell>
+                                <TableCell component="th" scope="col">
+                                  Tindakan
+                                </TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
                               {data.sessions.map((s) => (
                                 <SessionRow
                                   key={s.id}
@@ -1568,8 +1758,8 @@ export default function Workspace({ configured }: { configured: boolean }) {
                                   }
                                 />
                               ))}
-                            </tbody>
-                          </table>
+                            </TableBody>
+                          </DataTable>
                         ) : (
                           <div className="panel-inset">
                             <Empty title="Belum ada sesi">
@@ -1592,33 +1782,35 @@ export default function Workspace({ configured }: { configured: boolean }) {
                   ) : null}
                   {page === "accounts" && admin ? (
                     <section className="panel data-panel">
-                      <table className="table">
-                        <thead>
-                          <tr>
-                            <th>Kecamatan</th>
-                            <th>Nama pengguna</th>
-                            <th>Status</th>
-                            <th>Tindakan</th>
-                          </tr>
-                        </thead>
-                        <tbody>
+                      <DataTable aria-label="Akun kecamatan" className="table">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell component="th">Kecamatan</TableCell>
+                            <TableCell component="th">Nama pengguna</TableCell>
+                            <TableCell component="th">Status</TableCell>
+                            <TableCell component="th">Tindakan</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
                           {data.profiles
                             .filter((p) => p.role === "district")
                             .map((p) => (
-                              <tr
+                              <TableRow
                                 key={p.id}
                                 aria-busy={updating("account", p.id)}
                               >
-                                <td data-label="Kecamatan">
+                                <TableCell data-label="Kecamatan">
                                   <strong>{p.district}</strong>
-                                </td>
-                                <td data-label="Nama pengguna">{p.username}</td>
-                                <td data-label="Status">
+                                </TableCell>
+                                <TableCell data-label="Nama pengguna">
+                                  {p.username}
+                                </TableCell>
+                                <TableCell data-label="Status">
                                   <Badge>
                                     {p.active ? "Aktif" : "Nonaktif"}
                                   </Badge>
-                                </td>
-                                <td data-label="Tindakan">
+                                </TableCell>
+                                <TableCell data-label="Tindakan">
                                   <div className="actions">
                                     <button
                                       className="btn icon-btn"
@@ -1655,11 +1847,11 @@ export default function Workspace({ configured }: { configured: boolean }) {
                                       Reset kata sandi
                                     </button>
                                   </div>
-                                </td>
-                              </tr>
+                                </TableCell>
+                              </TableRow>
                             ))}
-                        </tbody>
-                      </table>
+                        </TableBody>
+                      </DataTable>
                       {!data.profiles.some((p) => p.role === "district") ? (
                         <div className="panel-inset">
                           <Empty title="Akun kecamatan belum tersedia">
@@ -1866,6 +2058,9 @@ export default function Workspace({ configured }: { configured: boolean }) {
               person: modal.person ? "Edit peserta" : "Tambah peserta",
               detail: "Detail peserta",
               "delete-person": "Hapus peserta",
+              "delete-history": modal.result
+                ? "Hapus histori undian"
+                : "Hapus seluruh histori undian",
               package: "Tambah maqro",
               cancel: "Batalkan hasil undian",
               account: "Pengaturan akun",
@@ -1875,7 +2070,9 @@ export default function Workspace({ configured }: { configured: boolean }) {
               password: "Ubah kata sandi",
               reset: "Reset kata sandi akun kecamatan",
               "toggle-account": "Ubah status akun",
-              "open-sessions": "Buka semua sesi",
+              "open-sessions": allSessionsOpen
+                ? "Tutup semua sesi"
+                : "Buka semua sesi",
               receipt: "Bukti hasil undian",
             }[modal.kind] || "Konfirmasi"
           }
@@ -1883,6 +2080,67 @@ export default function Workspace({ configured }: { configured: boolean }) {
           busy={busy}
         >
           {errorBox}
+          {modal.kind === "delete-history" && admin ? (
+            <form
+              className="form-stack"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void act(
+                  "delete-history",
+                  {
+                    ids: modal.result
+                      ? [modal.result.id]
+                      : data.results.map((r) => r.id),
+                  },
+                  "Histori undian dihapus.",
+                );
+              }}
+            >
+              <p>
+                {modal.result ? (
+                  <>
+                    Hapus hasil undian <strong>{modal.result.name}</strong>{" "}
+                    untuk cabang <strong>{modal.result.category}</strong>,
+                    materi <strong>{modal.result.surah}</strong> (
+                    {modal.result.verses})?
+                  </>
+                ) : (
+                  <>
+                    Hapus seluruh{" "}
+                    <strong>{data.results.length} hasil undian</strong> dari
+                    semua peserta dan cabang, termasuk hasil yang dibatalkan?
+                    Filter daftar peserta tidak membatasi penghapusan ini.
+                  </>
+                )}
+              </p>
+              <p className="notice">
+                Histori dan bukti hasil dihapus permanen. Peserta tetap
+                tersimpan dan dapat mengundi kembali jika sesinya dibuka. Paket
+                maqro dapat digunakan kembali. Catatan aktivitas penghapusan
+                tetap disimpan.
+              </p>
+              <label className="checkline">
+                <input type="checkbox" required disabled={busy} /> Saya memahami
+                bahwa histori yang dihapus tidak dapat dikembalikan.
+              </label>
+              <div className="dialog-actions actions">
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busy}
+                  onClick={close}
+                >
+                  Batal
+                </button>
+                <button
+                  className="btn danger"
+                  disabled={busy || !data.results.length}
+                >
+                  {busy ? "Menghapus…" : "Hapus permanen"}
+                </button>
+              </div>
+            </form>
+          ) : null}
           {modal.kind === "delete-person" && modal.person && admin ? (
             <>
               <p>
@@ -1983,10 +2241,11 @@ export default function Workspace({ configured }: { configured: boolean }) {
           {modal.kind === "open-sessions" && admin ? (
             <>
               <p>
-                Buka {readySessions.length} sesi yang sudah memiliki paket
-                maqro? Setiap cabang memiliki satu sesi undian.
+                {allSessionsOpen
+                  ? `Tutup semua ${data?.sessions.length} sesi? Peserta tidak dapat mengundi sampai sesi dibuka kembali.`
+                  : `Buka ${readySessions.length} sesi yang sudah memiliki paket maqro? Setiap cabang memiliki satu sesi undian.`}
               </p>
-              {blockedSessions.length ? (
+              {!allSessionsOpen && blockedSessions.length ? (
                 <p className="notice warn">
                   {blockedSessions.length} sesi belum memiliki paket dan akan
                   tetap ditutup.
@@ -1998,10 +2257,10 @@ export default function Workspace({ configured }: { configured: boolean }) {
                 </button>
                 <button
                   className="btn primary"
-                  disabled={busy || !readySessions.length}
-                  onClick={() => void openAllSessions()}
+                  disabled={busy || (!allSessionsOpen && !readySessions.length)}
+                  onClick={() => void toggleAllSessions()}
                 >
-                  Buka sesi yang siap
+                  {allSessionsOpen ? "Tutup semua sesi" : "Buka sesi yang siap"}
                 </button>
               </div>
             </>
@@ -2016,6 +2275,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
                   {
                     id: modal.person?.id,
                     name: text(f, "name"),
+                    participant_number: text(f, "participant_number"),
                     birth: text(f, "birth"),
                     gender: text(f, "gender"),
                     district: text(f, "district"),
@@ -2030,6 +2290,12 @@ export default function Workspace({ configured }: { configured: boolean }) {
                 label="Nama lengkap"
                 name="name"
                 value={modal.person?.name}
+              />
+              <Field
+                label="No. peserta"
+                name="participant_number"
+                value={modal.person?.participant_number || ""}
+                required={false}
               />
               <Field label="Kecamatan" name="district">
                 <select
@@ -2118,6 +2384,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
               <dl className="review">
                 {[
                   ["Nama peserta", modal.person.name],
+                  ["No. peserta", modal.person.participant_number || "—"],
                   ["Kecamatan", modal.person.district],
                   ["Tanggal lahir", modal.person.birth],
                   ["Kategori peserta", modal.person.gender],
@@ -2150,7 +2417,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
             >
               <p className="hint">
                 Masukkan paket resmi yang telah ditetapkan panitia. Semua kolom
-                wajib diisi. Kode paket dibuat otomatis saat disimpan.
+                wajib diisi.
               </p>
               <Field label="Cabang" name="category_id">
                 <select name="category_id" id="category_id" required>
@@ -2181,7 +2448,8 @@ export default function Workspace({ configured }: { configured: boolean }) {
               }}
             >
               <p>
-                <strong>{modal.result.name}</strong> · {modal.result.code}
+                <strong>{modal.result.name}</strong> · {modal.result.surah} ·{" "}
+                {modal.result.verses}
                 <br />
                 Hasil lama tetap tercatat. Undian pengganti dapat dilakukan jika
                 sesi dibuka.
@@ -2370,15 +2638,15 @@ function SessionRow({
   save: (open: boolean) => Promise<boolean>;
 }) {
   return (
-    <tr aria-busy={updating} className="session-table-row">
-      <td data-label="Cabang">
+    <TableRow aria-busy={updating} className="session-table-row">
+      <TableCell data-label="Cabang">
         <strong>{name}</strong>
-      </td>
-      <td data-label="Paket">{count} paket</td>
-      <td data-label="Status">
+      </TableCell>
+      <TableCell data-label="Paket">{count} paket</TableCell>
+      <TableCell data-label="Status">
         <Badge>{s.open ? "Dibuka" : "Ditutup"}</Badge>
-      </td>
-      <td data-label="Tindakan">
+      </TableCell>
+      <TableCell data-label="Tindakan">
         <div className="actions">
           <button
             type="button"
@@ -2389,7 +2657,7 @@ function SessionRow({
             {s.open ? "Tutup sesi" : "Buka sesi"}
           </button>
         </div>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }

@@ -1,4 +1,10 @@
 "use client";
+import DataTable, {
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+} from "./data-table";
 
 import { useMemo, useState } from "react";
 import type { Category, Package, Person, Result } from "@/lib/types";
@@ -22,7 +28,7 @@ export default function BankTable({
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState("");
-  const [sort, setSort] = useState("code");
+  const [sort, setSort] = useState("material");
   const rows = useMemo(() => {
     const recipients = new Map<string, Result[]>();
     for (const result of results) {
@@ -54,7 +60,6 @@ export default function BankTable({
             : row.recipients.length === 0)) &&
         (!search ||
           [
-            row.code,
             row.category,
             row.surah,
             row.verses,
@@ -71,9 +76,14 @@ export default function BankTable({
       (a, b) =>
         (sort === "category"
           ? a.category.localeCompare(b.category, "id")
-          : 0) || a.code.localeCompare(b.code, "id", { numeric: true }),
+          : 0) ||
+        a.surah.localeCompare(b.surah, "id", { numeric: true }) ||
+        a.verses.localeCompare(b.verses, "id", { numeric: true }) ||
+        a.id.localeCompare(b.id),
     );
-  const hasFilters = Boolean(query || category || status || sort !== "code");
+  const hasFilters = Boolean(
+    query || category || status || sort !== "material",
+  );
   return (
     <section aria-label="Daftar paket maqro">
       <div className="filters bank-filters">
@@ -84,7 +94,7 @@ export default function BankTable({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Kode, materi, nama, atau kecamatan"
+            placeholder="Materi, nama, atau kecamatan"
           />
         </div>
         <div className="field">
@@ -121,8 +131,8 @@ export default function BankTable({
             value={sort}
             onChange={(event) => setSort(event.target.value)}
           >
-            <option value="code">Kode paket</option>
-            <option value="category">Cabang, lalu kode</option>
+            <option value="material">Surah / materi</option>
+            <option value="category">Cabang, lalu materi</option>
           </select>
         </div>
       </div>
@@ -137,7 +147,7 @@ export default function BankTable({
               setQuery("");
               setCategory("");
               setStatus("");
-              setSort("code");
+              setSort("material");
             }}
           >
             Reset filter &amp; urutan
@@ -150,33 +160,37 @@ export default function BankTable({
       </p>
       <div className="panel data-panel">
         {filtered.length ? (
-          <table className="table bank-table">
+          <DataTable className="table bank-table">
             <caption className="sr-only">
               Paket maqro dan penerima undian aktif
             </caption>
-            <thead>
-              <tr>
-                <th scope="col">Kode</th>
-                <th scope="col">Cabang</th>
-                <th scope="col">Materi</th>
-                <th scope="col">Status</th>
-                <th scope="col">Penerima undian</th>
-              </tr>
-            </thead>
-            <tbody>
+            <TableHead>
+              <TableRow>
+                <TableCell component="th" scope="col">
+                  Cabang
+                </TableCell>
+                <TableCell component="th" scope="col">
+                  Materi
+                </TableCell>
+                <TableCell component="th" scope="col">
+                  Status
+                </TableCell>
+                <TableCell component="th" scope="col">
+                  Penerima undian
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
               {filtered.map((row) => (
-                <tr key={row.id}>
-                  <td data-label="Kode">
-                    <strong>{row.code}</strong>
-                  </td>
-                  <td data-label="Cabang">{row.category}</td>
-                  <td data-label="Materi">
+                <TableRow key={row.id}>
+                  <TableCell data-label="Cabang">{row.category}</TableCell>
+                  <TableCell data-label="Materi">
                     <div>
                       {row.surah}
                       <small>Ayat / rentang materi: {row.verses}</small>
                     </div>
-                  </td>
-                  <td data-label="Status">
+                  </TableCell>
+                  <TableCell data-label="Status">
                     <span
                       className={
                         row.recipients.length ? "status warn" : "status"
@@ -184,8 +198,8 @@ export default function BankTable({
                     >
                       {row.recipients.length ? "Sudah diundi" : "Tersedia"}
                     </span>
-                  </td>
-                  <td data-label="Penerima undian">
+                  </TableCell>
+                  <TableCell data-label="Penerima undian">
                     {row.recipients.length ? (
                       <div className="bank-recipients">
                         {row.recipients.map((recipient) => (
@@ -202,7 +216,7 @@ export default function BankTable({
                             <button
                               className="btn icon-btn"
                               title="Lihat bukti undian"
-                              aria-label={`Lihat bukti ${row.code}, ${recipient.name}`}
+                              aria-label={`Lihat bukti ${row.surah}, ${recipient.name}`}
                               disabled={busy}
                               onClick={() => onView(recipient.result)}
                             >
@@ -214,11 +228,11 @@ export default function BankTable({
                     ) : (
                       <span className="muted">Belum ada penerima</span>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </DataTable>
         ) : (
           <div className="panel-inset">
             <h2>

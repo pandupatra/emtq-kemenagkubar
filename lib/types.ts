@@ -8,6 +8,8 @@ export type Profile = {
 export type Category = { id: string; name: string };
 export type Person = {
   id: string;
+  participant_number?: string | null;
+  session_open?: boolean;
   name: string;
   district: string;
   birth: string;
@@ -24,7 +26,6 @@ export type Session = {
 export type Package = {
   id: string;
   category_id: string;
-  code: string;
   surah: string;
   verses: string;
 };
@@ -36,7 +37,6 @@ export type Result = {
   name: string;
   district: string;
   category: string;
-  code: string;
   surah: string;
   verses: string;
   gender: string;

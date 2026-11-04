@@ -33,7 +33,7 @@ select set_config('request.jwt.claim.sub',:'admin_id',true);
 select pg_temp.rejected('verify',jsonb_build_object('id',:'person_id'),'tidak dikenali');
 select pg_temp.rejected('revise',jsonb_build_object('id',:'person_id'),'tidak dikenali');
 select pg_temp.rejected('session',jsonb_build_object('id',:'session_id','open',true,'repeat',false),'Tambahkan paket');
-select public.maqro_action('package',jsonb_build_object('category_id',:'category_id','code','[TEST] ACCESS P-01','surah','[TEST] Materi','verses','[TEST] Rentang'));
+select public.maqro_action('package',jsonb_build_object('category_id',:'category_id','surah','[TEST] Materi','verses','[TEST] Rentang'));
 select public.maqro_action('session',jsonb_build_object('id',:'session_id','open',true,'repeat',false));
 select set_config('request.jwt.claim.sub',:'damai_id',true);
 select pg_temp.rejected('draw',jsonb_build_object('id',:'person_id','session_id',:'session_id'),'tidak memenuhi');

@@ -9,8 +9,8 @@ begin
   select * into s from public.sessions limit 1;
   select * into k from public.packages where category_id=s.category_id limit 1;
   insert into public.people(name,district,birth,gender,entries) values('[TEST] Account rename',d.district,'2000-01-01','Putra',array[s.category_id]) returning id into p;
-  insert into public.results(person_id,session_id,package_id,name,district,category,code,surah,verses,gender)
-  values(p,s.id,k.id,'[TEST] Account rename',d.district,'[TEST]',k.code,k.surah,k.verses,'Putra');
+  insert into public.results(person_id,session_id,package_id,name,district,category,surah,verses,gender)
+  values(p,s.id,k.id,'[TEST] Account rename',d.district,'[TEST]',k.surah,k.verses,'Putra');
   insert into auth.users(id) values(new_id);
   perform public.save_district_account(new_id,'test-new-account','[TEST] Kecamatan baru',a,true);
   if not exists(select 1 from public.profiles where id=new_id and role='district' and active) then raise exception 'New account invalid'; end if;

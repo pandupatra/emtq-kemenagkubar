@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Montserrat, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import MuiProvider from "./mui-provider";
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-plus-jakarta-sans",
@@ -16,18 +17,18 @@ const montserrat = Montserrat({
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.lptqkubar.id"),
   icons: { icon: "/logo-lptq.png", apple: "/logo-lptq.png" },
-  title: "e-MTQ LPTQ Kubar",
+  title: "e-Maqro LPTQ Kubar",
   description:
-    "Aplikasi e-MTQ LPTQ Kabupaten Kutai Barat untuk pengelolaan peserta, undian maqro, dan hasil undian MTQ.",
+    "Aplikasi e-Maqro LPTQ Kabupaten Kutai Barat untuk pengelolaan peserta, undian maqro, dan hasil undian MTQ.",
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     locale: "id_ID",
     url: "/",
     siteName: "LPTQ Kubar",
-    title: "e-MTQ LPTQ Kubar",
+    title: "e-Maqro LPTQ Kubar",
     description:
-      "Kelola peserta, undian maqro, dan hasil undian MTQ Kabupaten Kutai Barat melalui e-MTQ LPTQ Kubar.",
+      "Kelola peserta, undian maqro, dan hasil undian MTQ Kabupaten Kutai Barat melalui e-Maqro LPTQ Kubar.",
     images: [
       {
         url: "/logo-lptq.png",
@@ -37,9 +38,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "e-MTQ LPTQ Kubar",
+    title: "e-Maqro LPTQ Kubar",
     description:
-      "Kelola peserta, undian maqro, dan hasil undian MTQ Kabupaten Kutai Barat melalui e-MTQ LPTQ Kubar.",
+      "Kelola peserta, undian maqro, dan hasil undian MTQ Kabupaten Kutai Barat melalui e-Maqro LPTQ Kubar.",
     images: ["/logo-lptq.png"],
   },
 };
@@ -52,7 +53,9 @@ export default function Layout({
       className={`${plusJakartaSans.variable} ${montserrat.variable}`}
       suppressHydrationWarning
     >
-      <body>{children}</body>
+      <body>
+        <MuiProvider>{children}</MuiProvider>
+      </body>
     </html>
   );
 }

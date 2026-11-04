@@ -1,7 +1,8 @@
 export default function ActionIcon({
   name,
 }: {
-  name: "refresh" | "sun" | "moon" | "logout" | "close" | "edit" | "eye" | "trash";
+  name:
+    "refresh" | "sun" | "moon" | "logout" | "close" | "edit" | "eye" | "trash";
 }) {
   const shapes = {
     trash: (

@@ -104,26 +104,21 @@ if (values["dry-run"]) {
 }
 const { error: check } = await db.from("packages").select("seed_key").limit(1);
 if (check)
-  throw new Error(
-    "Jalankan migrasi 202610300001_automatic_package_codes.sql sebelum seed paket.",
-  );
+  throw new Error("Jalankan seluruh migrasi Supabase sebelum seed paket.");
 const { data: added, error } = await db
   .from("packages")
   .upsert(rows, { onConflict: "seed_key", ignoreDuplicates: true })
-  .select("id,code");
+  .select("id");
 if (error)
   throw new Error(
     `Seed paket gagal (${error.code}). Tidak ada batch yang disimpan.`,
   );
-if (added.some((p) => !/^MQ-\d{6,}$/.test(p.code)))
-  throw new Error("Format kode paket tidak sesuai. Periksa migrasi database.");
 console.log(
   JSON.stringify(
     {
       added: added.length,
       skipped: rows.length - added.length,
       example: input.example,
-      codes: added.map((p) => p.code),
     },
     null,
     2,

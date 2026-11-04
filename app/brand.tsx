@@ -2,6 +2,7 @@ import Image from "next/image";
 import lptqLogo from "@/public/logo-lptq.png";
 import kemenagLogo from "@/public/logo-kemenag.png";
 import pemkabLogo from "@/public/logo-pemkab-kutai-barat.png";
+import mtqLogo from "@/public/logo-mtq-xviii-2026.png";
 
 export default function Brand({ login = false }: { login?: boolean }) {
   return (
@@ -15,14 +16,20 @@ export default function Brand({ login = false }: { login?: boolean }) {
             preload
           />
           <Image
+            src={pemkabLogo}
+            alt="Logo Pemerintah Kabupaten Kutai Barat"
+            sizes="(min-width: 700px) 104px, 80px"
+            preload
+          />
+          <Image
             src={lptqLogo}
             alt="Logo LPTQ Kabupaten Kutai Barat"
             sizes="(min-width: 700px) 104px, 80px"
             preload
           />
           <Image
-            src={pemkabLogo}
-            alt="Logo Pemerintah Kabupaten Kutai Barat"
+            src={mtqLogo}
+            alt="Logo MTQ XVIII 2026 Kutai Barat"
             sizes="(min-width: 700px) 104px, 80px"
             preload
           />
@@ -37,7 +44,7 @@ export default function Brand({ login = false }: { login?: boolean }) {
         />
       )}
       <div className="brand-name">
-        <strong>e-MTQ</strong>
+        <strong>e-Maqro</strong>
         <span>LPTQ Kubar</span>
       </div>
     </div>

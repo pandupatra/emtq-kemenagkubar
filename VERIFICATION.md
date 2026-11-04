@@ -1,5 +1,21 @@
 # Verifikasi Maqro
 
+## QA sebelum push, 4 November 2026
+
+- PASS build produksi, TypeScript, Prettier, dan `git diff --check`.
+- PASS pengujian Node: dashboard (3 kasus, memakai `--experimental-strip-types` pada Node 22), participant sessions, delete draw history, maqro without codes, package reuse, dan delete participant.
+- PASS lima suite SQL setelah empat migrasi baru diterapkan di dalam transaksi lokal: district access, district accounts, fixed unique packages, single session, dan packages without codes. Seluruh transaksi pengujian di-rollback.
+- Metadata Open Graph/Twitter disamakan dengan nama e-Maqro. Cache, artefak output, konfigurasi Codex lokal, dan berkas sementara Supabase diabaikan Git.
+- QA browser baru tidak dijalankan karena BrowserOS tidak tersedia pada sesi ini. Migrasi Supabase aktif dan deployment bukan bagian dari verifikasi lokal ini; seluruh migrasi wajib diterapkan sebelum versi aplikasi ini dijalankan.
+
+## Maqro tanpa kode, 4 November 2026
+
+- Kolom dan generator kode dihapus melalui migrasi `20261104022636_remove_maqro_codes.sql`. RPC paket, undian, dan audit penghapusan histori menggunakan materi serta rentang ayat. ID internal, isi materi, dan relasi hasil tetap dipertahankan. Catatan verifikasi kode otomatis di bawah merupakan riwayat versi sebelumnya.
+- PASS `node scripts/maqro-without-codes.test.mjs` pada PostgreSQL lokal: seluruh record sebelum migrasi identik setelah mengecualikan kode; pembuatan paket, pembatasan akses, undian idempoten, larangan paket ganda, pembatalan/pemakaian ulang, penghapusan histori dan audit, kontrol sesi peserta, serta idempotensi seed. Semua perubahan pengujian di-rollback.
+- PASS build produksi dan TypeScript. PASS browser Chrome/Playwright dengan respons API fixture tanpa properti kode: bank maqro empat kolom, pencarian/pengurutan materi, bukti hasil, unduhan CSV tanpa kolom kode, serta halaman undian. Tidak ada pageerror atau penulisan live.
+- PASS pemeriksaan layout 360/768/1440 piksel; daftar peserta diperiksa pada tema terang/gelap. Bukti hasil dan bank maqro desktop diperiksa visual. Artefak: `output/playwright/maqro-without-codes-receipt.png`, `output/playwright/mui-Bank_maqro-1440.png`, dan `output/playwright/maqro-without-codes.csv`.
+- Delivery Gate: kontrol dan aksi tetap terhubung, konteks materi menggantikan kode, token serta layout mengikuti DESIGN.md. Migrasi belum diterapkan pada Supabase aktif dan perubahan belum dideploy.
+
 ## Filter Semua cabang, 30 Oktober 2026
 
 - Pilihan awal filter undian menjadi Semua cabang. Baris mewakili pasangan peserta/cabang dan menampilkan kolom Cabang agar peserta yang mengikuti beberapa cabang tidak ambigu. Filter satu cabang tetap tersedia. Jumlah memakai istilah pilihan undian agar tidak mengklaim jumlah peserta unik.

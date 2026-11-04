@@ -1,4 +1,10 @@
 "use client";
+import DataTable, {
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+} from "./data-table";
 
 import { useState } from "react";
 import type { Category, Person, Result, Session } from "@/lib/types";
@@ -47,14 +53,18 @@ export default function DrawPicker({
           person,
           session: currentSession,
           result,
-          status: result ? "done" : currentSession.open ? "ready" : "closed",
+          status: result
+            ? "done"
+            : currentSession.open && person.session_open !== false
+              ? "ready"
+              : "closed",
         };
       }),
   );
   const visible = rows.filter(
     (r) =>
       (status === "all" || r.status === status) &&
-      `${r.person.name} ${r.person.gender}`
+      `${r.person.name} ${r.person.gender} ${r.person.participant_number || ""}`
         .toLocaleLowerCase("id")
         .includes(query.trim().toLocaleLowerCase("id")),
   );
@@ -104,7 +114,7 @@ export default function DrawPicker({
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Nama peserta"
+                placeholder="Nama atau no. peserta"
               />
             </div>
             <div className="field">
@@ -141,16 +151,19 @@ export default function DrawPicker({
             {session ? category(session.category_id) : "Semua cabang"}
           </p>
           {visible.length ? (
-            <table className="table draw-participants">
-              <thead>
-                <tr>
-                  <th>Peserta</th>
-                  <th>Cabang</th>
-                  <th>Status undian</th>
-                  <th>Tindakan</th>
-                </tr>
-              </thead>
-              <tbody>
+            <DataTable
+              aria-label="Pilihan peserta undian"
+              className="table draw-participants"
+            >
+              <TableHead>
+                <TableRow>
+                  <TableCell component="th">Peserta</TableCell>
+                  <TableCell component="th">Cabang</TableCell>
+                  <TableCell component="th">Status undian</TableCell>
+                  <TableCell component="th">Tindakan</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
                 {visible.map(
                   ({
                     person,
@@ -158,15 +171,18 @@ export default function DrawPicker({
                     result,
                     status: rowStatus,
                   }) => (
-                    <tr key={`${person.id}:${rowSession.id}`}>
-                      <td data-label="Peserta">
+                    <TableRow key={`${person.id}:${rowSession.id}`}>
+                      <TableCell data-label="Peserta">
                         <strong>{person.name}</strong>
+                        <small>
+                          No. peserta: {person.participant_number || "—"}
+                        </small>
                         <small>{person.gender}</small>
-                      </td>
-                      <td data-label="Cabang">
+                      </TableCell>
+                      <TableCell data-label="Cabang">
                         {category(rowSession.category_id)}
-                      </td>
-                      <td data-label="Status">
+                      </TableCell>
+                      <TableCell data-label="Status">
                         <div>
                           <span
                             className={`status${rowStatus === "closed" ? " warn" : ""}`}
@@ -177,10 +193,9 @@ export default function DrawPicker({
                                 ? "Siap diundi"
                                 : "Sesi ditutup"}
                           </span>
-                          {result ? <small>{result.code}</small> : null}
                         </div>
-                      </td>
-                      <td data-label="Tindakan">
+                      </TableCell>
+                      <TableCell data-label="Tindakan">
                         {result ? (
                           <button
                             className="btn"
@@ -193,19 +208,23 @@ export default function DrawPicker({
                         ) : (
                           <button
                             className="btn primary"
-                            disabled={!rowSession.open || busy}
+                            disabled={
+                              !rowSession.open ||
+                              person.session_open === false ||
+                              busy
+                            }
                             onClick={() => onSelect(person, rowSession)}
                             aria-label={`Undi maqro ${person.name}, ${category(rowSession.category_id)}`}
                           >
                             Undi maqro
                           </button>
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ),
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </DataTable>
           ) : (
             <div className="empty">
               <h3>Peserta tidak ditemukan</h3>

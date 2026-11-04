@@ -4,11 +4,13 @@ export default function ParticipantResults({
   results,
   onView,
   onCancel,
+  onDelete,
   busy,
 }: {
   results: Result[];
   onView: (result: Result) => void;
   onCancel?: (result: Result) => void;
+  onDelete?: (result: Result) => void;
   busy: boolean;
 }) {
   if (!results.length)
@@ -20,7 +22,7 @@ export default function ParticipantResults({
       <div>
         <strong>{r.category}</strong>
         <small>
-          {r.code} · {r.surah} · {r.verses}
+          {r.surah} · {r.verses}
         </small>
         {r.cancelled ? (
           <>
@@ -40,6 +42,16 @@ export default function ParticipantResults({
         >
           Bukti hasil
         </button>
+        {onDelete ? (
+          <button
+            className="btn danger"
+            disabled={busy}
+            onClick={() => onDelete(r)}
+            aria-label={`Hapus histori ${r.category}, ${r.name}`}
+          >
+            Hapus histori
+          </button>
+        ) : null}
         {onCancel && !r.cancelled ? (
           <button
             className="btn danger"

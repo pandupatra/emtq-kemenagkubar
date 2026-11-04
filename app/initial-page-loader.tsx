@@ -61,7 +61,7 @@ export default function InitialPageLoader({
           aria-live="polite"
         >
           <Image src={lptqLogo} alt="" width={88} height={88} preload />
-          <strong>e-MTQ LPTQ Kubar</strong>
+          <strong>e-Maqro LPTQ Kubar</strong>
           <span className="initial-page-loader-spinner" aria-hidden="true" />
           <p>Memuat aplikasi…</p>
         </div>

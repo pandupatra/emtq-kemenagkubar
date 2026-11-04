@@ -39,7 +39,7 @@ Jika satu peserta memiliki beberapa hasil aktif pada cabang sama, atau satu pake
 
 ## Akses dan penyimpanan
 
-Kode paket dibuat database saat paket disimpan, dengan format `MQ-000001` dan seterusnya. Panitia hanya mengisi cabang, surah/materi, dan ayat/rentang materi. Kode yang telah ada tidak diubah; kode baru tidak dapat diedit. Sequence mencegah kode ganda pada permintaan bersamaan. Nomornya dapat melompat akibat transaksi batal atau seed ulang, sehingga bukan hitungan jumlah paket.
+Maqro tidak menggunakan kode. Panitia mengisi cabang, surah/materi, dan ayat/rentang materi. Relasi paket dan hasil undian menggunakan ID internal. Terapkan seluruh migrasi, termasuk penghapusan kode maqro, sebelum menjalankan versi ini.
 
 - Semua tabel memakai RLS. Kecamatan hanya membaca peserta dan hasil kecamatannya. Bank paket hanya dibaca panitia.
 - Penulisan operasional melewati `maqro_action`, yang memeriksa akun aktif, peran, kepemilikan, cabang, sesi, dan ketersediaan paket pada server database. Status verifikasi lama tidak menentukan kelayakan undian. Tambah/edit peserta hanya diizinkan untuk panitia; permintaan submit/verify/revise tidak lagi didukung.
@@ -61,13 +61,13 @@ Profil, referensi kecamatan, dan catatan aktivitas disimpan dalam satu transaksi
 
 ## Verifikasi database
 
-`supabase/tests/district_access.sql` memeriksa akses lintas kecamatan, larangan edit oleh kecamatan, undian langsung tanpa verifikasi, idempotensi, pembatalan, dan akun nonaktif. Jalankan menggunakan `psql -v ON_ERROR_STOP=1 -f supabase/tests/district_access.sql` setelah seluruh migrasi dan provisioning pada database pengujian. `supabase/tests/package_codes.sql` memeriksa generator kode, penolakan kode manual, pelestarian kode setelah dibuat, serta duplikasi seed. Skrip menggunakan perintah psql, bukan SQL Editor. Fixture di-rollback; sequence tetap dapat maju.
+`supabase/tests/district_access.sql` memeriksa akses lintas kecamatan, larangan edit oleh kecamatan, undian langsung tanpa verifikasi, idempotensi, pembatalan, dan akun nonaktif. Jalankan menggunakan `psql -v ON_ERROR_STOP=1 -f supabase/tests/district_access.sql` setelah seluruh migrasi dan provisioning pada database pengujian. `supabase/tests/packages_without_codes.sql` memeriksa pembuatan paket tanpa kode, akses kecamatan, serta idempotensi seed. Jalankan dengan psql setelah seluruh migrasi diterapkan; data fixture di-rollback.
 
 `supabase/tests/fixed_unique_packages.sql` memeriksa aturan paket unik, penolakan pengulangan melalui database dan RPC, satu sesi per cabang, satu hasil aktif per peserta, serta penolakan pemakaian paket oleh kecamatan lain pada cabang yang sama. `supabase/tests/single_session.sql` memeriksa penghapusan kolom babak, satu sesi pada setiap cabang, serta keunikan hasil aktif peserta dan paket setelah migrasi.
 
 ## Seed paket maqro
 
-Jalankan migrasi `202610300001_automatic_package_codes.sql` sebelum mengisi paket. Konfigurasi `.env.local` yang digunakan sama dengan seed akun. Skrip paket terpisah dari seed akun agar menjalankan provisioning akun tidak otomatis memasukkan materi contoh.
+Jalankan seluruh migrasi Supabase sebelum mengisi paket. Konfigurasi `.env.local` yang digunakan sama dengan seed akun. Skrip paket terpisah dari seed akun agar menjalankan provisioning akun tidak otomatis memasukkan materi contoh.
 
 Periksa sumber contoh tanpa menulis data:
 

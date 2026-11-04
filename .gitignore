@@ -9,3 +9,6 @@ output/playwright/
 .playwright/
 .playwright-cli/
 .impeccable/
+.codex/
+output/
+supabase/.temp/

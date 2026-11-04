@@ -1,3 +1,9 @@
+import DataTable, {
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+} from "./data-table";
 import type { ReactNode } from "react";
 
 function Bar({
@@ -100,28 +106,28 @@ export function WorkspaceSkeleton({ page }: { page: string }) {
     return (
       <Frame label="Memuat cabang dan sesi">
         <section className="panel data-panel">
-          <table className="table sessions-table">
-            <thead>
-              <tr>
+          <DataTable className="table sessions-table">
+            <TableHead>
+              <TableRow>
                 {columns.map((column) => (
-                  <th key={column}>
+                  <TableCell component="th" key={column}>
                     <Bar wide />
-                  </th>
+                  </TableCell>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
+              </TableRow>
+            </TableHead>
+            <TableBody>
               {[0, 1, 2, 3].map((row) => (
-                <tr key={row}>
+                <TableRow key={row}>
                   {columns.map((column, index) => (
-                    <td data-label={column} key={column}>
+                    <TableCell data-label={column} key={column}>
                       <Bar wide tall={index >= 3} />
-                    </td>
+                    </TableCell>
                   ))}
-                </tr>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </DataTable>
         </section>
       </Frame>
     );

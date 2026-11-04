@@ -1,3 +1,10 @@
+import DataTable, {
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  TableFooter,
+} from "./data-table";
 import type { Data } from "@/lib/types";
 import { summarizeParticipants } from "@/lib/dashboard";
 
@@ -93,39 +100,45 @@ export default function WorkSummary({
               role="region"
               aria-label="Rekap peserta per kecamatan"
             >
-              <table className="district-overview-table">
+              <DataTable className="district-overview-table">
                 <caption className="sr-only">
                   Jumlah peserta, peserta yang sudah mengundi dan belum mengundi
                   per kecamatan
                 </caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Kecamatan</th>
-                    <th scope="col" className="numeric">
+                <TableHead>
+                  <TableRow>
+                    <TableCell component="th" scope="col">
+                      Kecamatan
+                    </TableCell>
+                    <TableCell component="th" scope="col" className="numeric">
                       Peserta
-                    </th>
-                    <th scope="col" className="numeric">
+                    </TableCell>
+                    <TableCell component="th" scope="col" className="numeric">
                       Sudah <span>mengundi</span>
-                    </th>
-                    <th scope="col" className="numeric">
+                    </TableCell>
+                    <TableCell component="th" scope="col" className="numeric">
                       Belum <span>mengundi</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
                   {summary.districts.map((row) => (
-                    <tr key={row.district}>
-                      <th scope="row">
+                    <TableRow key={row.district}>
+                      <TableCell component="th" scope="row">
                         <button
                           className="district-name"
                           onClick={() => openPeople({ district: row.district })}
                         >
                           {row.district}
                         </button>
-                      </th>
-                      <td className="numeric">{number.format(row.total)}</td>
-                      <td className="numeric">{number.format(row.drawn)}</td>
-                      <td className="numeric">
+                      </TableCell>
+                      <TableCell className="numeric">
+                        {number.format(row.total)}
+                      </TableCell>
+                      <TableCell className="numeric">
+                        {number.format(row.drawn)}
+                      </TableCell>
+                      <TableCell className="numeric">
                         {row.remaining ? (
                           <button
                             className="district-remaining"
@@ -142,21 +155,27 @@ export default function WorkSummary({
                         ) : (
                           "0"
                         )}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <th scope="row">Total</th>
-                    <td className="numeric">{number.format(summary.total)}</td>
-                    <td className="numeric">{number.format(summary.drawn)}</td>
-                    <td className="numeric">
+                </TableBody>
+                <TableFooter>
+                  <TableRow>
+                    <TableCell component="th" scope="row">
+                      Total
+                    </TableCell>
+                    <TableCell className="numeric">
+                      {number.format(summary.total)}
+                    </TableCell>
+                    <TableCell className="numeric">
+                      {number.format(summary.drawn)}
+                    </TableCell>
+                    <TableCell className="numeric">
                       {number.format(summary.remaining)}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
+              </DataTable>
             </div>
           ) : (
             <div className="empty">
@@ -190,27 +209,31 @@ export default function WorkSummary({
               role="region"
               aria-label="Rekap peserta per cabang"
             >
-              <table className="district-overview-table">
+              <DataTable className="district-overview-table">
                 <caption className="sr-only">Jumlah peserta per cabang</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Cabang</th>
-                    <th scope="col" className="numeric">
+                <TableHead>
+                  <TableRow>
+                    <TableCell component="th" scope="col">
+                      Cabang
+                    </TableCell>
+                    <TableCell component="th" scope="col" className="numeric">
                       Peserta
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
                   {categories.map((category) => (
-                    <tr key={category.id}>
-                      <th scope="row">{category.name}</th>
-                      <td className="numeric">
+                    <TableRow key={category.id}>
+                      <TableCell component="th" scope="row">
+                        {category.name}
+                      </TableCell>
+                      <TableCell className="numeric">
                         {number.format(category.total)}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </DataTable>
             </div>
           ) : (
             <div className="empty">

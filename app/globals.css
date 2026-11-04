@@ -862,27 +862,24 @@ small {
     table-layout: fixed;
   }
   .bank-table th:nth-child(1) {
-    width: 14%;
+    width: 23%;
   }
   .bank-table th:nth-child(2) {
-    width: 18%;
+    width: 31%;
   }
   .bank-table th:nth-child(3) {
-    width: 25%;
+    width: 17%;
   }
   .bank-table th:nth-child(4) {
-    width: 15%;
-  }
-  .bank-table th:nth-child(5) {
-    width: 28%;
+    width: 29%;
   }
 }
 @media (max-width: 699px) {
-  .bank-table td[data-label="Kode"] {
+  .bank-table td[data-label="Cabang"] {
     display: block;
     font-size: 17px;
   }
-  .bank-table td[data-label="Kode"]::before {
+  .bank-table td[data-label="Cabang"]::before {
     display: none;
   }
 }
@@ -891,10 +888,6 @@ small {
   padding: 16px 20px;
   border-bottom: 1px solid var(--line);
   color: var(--body);
-}
-.people-table-caption .field {
-  width: 100%;
-  max-width: 280px;
 }
 @media (max-width: 699px) {
   .people-table-caption {
@@ -965,6 +958,39 @@ small {
   .people-table {
     table-layout: fixed;
   }
+  .people-table:not(.people-table-admin) th:nth-child(1) {
+    width: 21%;
+  }
+  .people-table:not(.people-table-admin) th:nth-child(2) {
+    width: 21%;
+  }
+  .people-table:not(.people-table-admin) th:nth-child(3) {
+    width: 16%;
+  }
+  .people-table:not(.people-table-admin) th:nth-child(4) {
+    width: 27%;
+  }
+  .people-table:not(.people-table-admin) th:nth-child(5) {
+    width: 15%;
+  }
+  .people-table.people-table-admin th:nth-child(1) {
+    width: 6%;
+  }
+  .people-table.people-table-admin th:nth-child(2) {
+    width: 19%;
+  }
+  .people-table.people-table-admin th:nth-child(3) {
+    width: 19%;
+  }
+  .people-table.people-table-admin th:nth-child(4) {
+    width: 18%;
+  }
+  .people-table.people-table-admin th:nth-child(5) {
+    width: 24%;
+  }
+  .people-table.people-table-admin th:nth-child(6) {
+    width: 14%;
+  }
   .people-table th:nth-child(1) {
     width: 23%;
   }
@@ -980,6 +1006,21 @@ small {
   .people-table .actions {
     min-width: 0;
   }
+}
+.session-status-select {
+  width: auto;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid currentColor;
+  cursor: pointer;
+}
+.session-status-select:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+.people-table input[type="checkbox"] {
+  cursor: pointer;
 }
 @media (max-width: 699px) {
   .people-table td[data-label="Hasil undian"] {
@@ -1037,11 +1078,11 @@ small {
 }
 .login-context {
   padding: 28px 22px;
-  background: #213d34;
-  color: #fffefa;
+  background: var(--paper);
+  color: var(--ink);
 }
 .login-context .brand {
-  color: #fffefa;
+  color: var(--ink);
 }
 .brand-login {
   flex-direction: column;
@@ -1052,31 +1093,32 @@ small {
   display: none;
 }
 .login-logos {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: center;
-  gap: clamp(16px, 3vw, 28px);
-  max-width: 100%;
+  gap: clamp(8px, 2vw, 28px);
+  width: min(100%, 368px);
 }
 .login-logos img {
-  width: 80px;
-  height: 88px;
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  aspect-ratio: 13 / 14;
   object-fit: contain;
 }
 @media (min-width: 700px) {
-  .login-logos img {
-    width: 104px;
-    height: 112px;
+  .login-logos {
+    width: min(100%, 500px);
   }
 }
 .login-context h1 {
   font-size: clamp(31px, 4vw, 53px);
-  color: #fffefa;
+  color: var(--ink);
   margin: 24px 0 20px;
   max-width: 470px;
 }
 .login-context p {
-  color: #fffefa;
-  opacity: 0.85;
+  color: var(--muted);
   max-width: 390px;
   font-size: 14px;
 }
@@ -1084,7 +1126,7 @@ small {
   font:
     14px var(--font-plus-jakarta-sans),
     sans-serif;
-  border-top: 1px solid #ffffff50;
+  border-top: 1px solid var(--line);
   padding-top: 18px;
   margin-top: 25px;
 }
@@ -1092,22 +1134,34 @@ small {
   padding: 32px 22px;
   display: grid;
   place-items: center;
+  background: #213d34;
+  color: #fffefa;
+  --focus: #f2d478;
 }
 .login-box {
   width: min(100%, 410px);
 }
 .login-box h1 {
   font-size: 32px;
+  color: #fffefa;
 }
 .login-box .primary {
   width: 100%;
   margin-top: 6px;
+  background: #eaf0e4;
+  color: #213d34;
+  border-color: #eaf0e4;
+}
+.login-box .primary:hover:not(:disabled) {
+  background: #d8e3cf;
+  border-color: #d8e3cf;
 }
 .login-box > .notice {
   margin-bottom: 20px;
 }
 .login-box > .hint {
   margin-bottom: 20px;
+  color: #d8dcd2;
 }
 .stepper {
   list-style: none;
@@ -1222,13 +1276,6 @@ dd {
 .maqro-result {
   text-align: center;
   padding: 20px 0 30px;
-}
-.package-code {
-  font:
-    clamp(42px, 7vw, 66px) var(--font-plus-jakarta-sans),
-    sans-serif;
-  color: var(--ink);
-  margin: 12px 0;
 }
 .maqro-result h2 {
   font:
