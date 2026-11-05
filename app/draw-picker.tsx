@@ -192,11 +192,13 @@ export default function DrawPicker({
                           <span
                             className={`status${rowStatus === "closed" ? " warn" : ""}`}
                           >
-                            {result
+                            {rowStatus === "done"
                               ? "Sudah diundi"
-                              : rowSession.open
+                              : rowStatus === "ready"
                                 ? "Siap diundi"
-                                : "Sesi ditutup"}
+                                : !rowSession.open
+                                  ? "Sesi ditutup"
+                                  : "Ditutup"}
                           </span>
                         </div>
                       </TableCell>
