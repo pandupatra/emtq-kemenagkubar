@@ -331,7 +331,7 @@ function Receipt({ result: r, person }: { result: Result; person?: Person }) {
 }
 
 export default function Workspace({ configured }: { configured: boolean }) {
-  const [data, setData] = useState<Data | null>(null),
+  const [rawData, setData] = useState<Data | null>(null),
     [loading, setLoading] = useState(configured),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -415,7 +415,53 @@ export default function Workspace({ configured }: { configured: boolean }) {
     [drawResult, setDrawResult] = useState<Result | null>(null);
   const request = useRef(0),
     mutation = useRef(false);
+  const [impersonatedId, setImpersonatedId] = useState<string | null>(null);
+  const targetProfile =
+    rawData?.profile.role === "admin"
+      ? rawData.profiles.find(
+          (p) => p.id === impersonatedId && p.role === "district" && p.active,
+        )
+      : undefined;
+  const data =
+    rawData && targetProfile
+      ? {
+          ...rawData,
+          profile: targetProfile,
+          people: rawData.people.filter(
+            (p) => p.district === targetProfile.district,
+          ),
+          results: rawData.results.filter(
+            (r) => r.district === targetProfile.district,
+          ),
+          profiles: [],
+          packages: [],
+          logs: [],
+        }
+      : rawData;
   const admin = data?.profile.role === "admin";
+  function changeImpersonation(id: string | null) {
+    if (mutation.current) return;
+    setImpersonatedId(id);
+    resetPeopleFilters();
+    setSelectedPeople([]);
+    setSelection(null);
+    setDrawResult(null);
+    setDrawStep(1);
+    setModal(null);
+    setMenu(false);
+    setError("");
+    setFeedback("");
+    setPage(id ? "draw" : "accounts");
+  }
+  useEffect(() => {
+    if (impersonatedId && !targetProfile) {
+      setImpersonatedId(null);
+      setSelection(null);
+      setDrawResult(null);
+      setModal(null);
+      setPage("accounts");
+    }
+  }, [impersonatedId, targetProfile]);
   const pages = admin
     ? ["dashboard", "people", "sessions", "bank", "accounts", "logs"]
     : ["people", "draw"];
@@ -566,6 +612,10 @@ export default function Workspace({ configured }: { configured: boolean }) {
     message: string,
   ) {
     if (mutation.current) return null;
+    if (targetProfile) {
+      if (action !== "draw") return null;
+      payload = { ...payload, impersonated_profile_id: targetProfile.id };
+    }
     mutation.current = true;
     setBusy(true);
     setPendingChange({
@@ -662,7 +712,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
       draw: "results",
       cancel: "results",
     }[action] as MutableCollection;
-    const owner = data?.profile.id;
+    const owner = rawData?.profile.id;
     if (!owner) return;
     let rows: { id: string }[];
     let replace = false;
@@ -1284,6 +1334,20 @@ export default function Workspace({ configured }: { configured: boolean }) {
           </div>
         </aside>
         <main className="main" inert={menu}>
+          {targetProfile ? (
+            <div className="impersonation-banner" role="status">
+              <strong>
+                Anda sedang bertindak sebagai Kecamatan {targetProfile.district}
+              </strong>
+              <button
+                className="btn"
+                disabled={busy}
+                onClick={() => changeImpersonation(null)}
+              >
+                Kembali ke admin
+              </button>
+            </div>
+          ) : null}
           <header className="topbar">
             <span>MTQ Kutai Barat</span>
             <button
@@ -1911,6 +1975,22 @@ export default function Workspace({ configured }: { configured: boolean }) {
                                 </TableCell>
                                 <TableCell data-label="Tindakan">
                                   <div className="actions">
+                                    <button
+                                      className="btn"
+                                      disabled={busy || !p.active}
+                                      onClick={() => {
+                                        if (
+                                          window.confirm(
+                                            "Masuk sebagai Kecamatan " +
+                                              p.district +
+                                              "? Undian yang dilakukan akan disimpan sebagai hasil resmi atas nama kecamatan ini, dengan Anda sebagai admin pelaksana.",
+                                          )
+                                        )
+                                          changeImpersonation(p.id);
+                                      }}
+                                    >
+                                      Masuk sebagai kecamatan
+                                    </button>
                                     <button
                                       className="btn icon-btn"
                                       disabled={busy}
