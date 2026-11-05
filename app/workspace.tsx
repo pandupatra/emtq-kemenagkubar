@@ -19,6 +19,7 @@ import type { Data, Package, Person, Result, Session } from "@/lib/types";
 import { LoginSkeleton, WorkspaceSkeleton } from "./skeletons";
 import Brand from "./brand";
 import ActionIcon from "./action-icon";
+import SvgIcon from "@mui/material/SvgIcon";
 import ParticipantResults from "./participant-results";
 import DrawPicker from "./draw-picker";
 import WorkSummary from "./work-summary";
@@ -34,6 +35,18 @@ const titles: Record<string, string> = {
   accounts: "Akun kecamatan",
   draw: "Undian maqro",
   logs: "Catatan aktivitas",
+};
+const menuIconPaths: Record<string, string> = {
+  dashboard: "M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z",
+  people:
+    "M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05C16.19 13.89 17 15.02 17 16.5V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z",
+  sessions:
+    "M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11zM7 11h5v5H7z",
+  bank: "M21 4H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-10 6H3V6h8v4zm10 0h-8V6h8v4zM3 12h8v6H3v-6zm10 6v-6h8v6h-8z",
+  accounts:
+    "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z",
+  draw: "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM7.5 18C6.67 18 6 17.33 6 16.5S6.67 15 7.5 15s1.5.67 1.5 1.5S8.33 18 7.5 18zm0-9C6.67 9 6 8.33 6 7.5S6.67 6 7.5 6 9 6.67 9 7.5 8.33 9 7.5 9zm4.5 4.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4.5 4.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm0-9C15.67 9 15 8.33 15 7.5S15.67 6 16.5 6 18 6.67 18 7.5 17.33 9 16.5 9z",
+  logs: "M13 3a9 9 0 0 0-9 9H1l4 4 4-4H6a7 7 0 1 1 2.05 4.95l-1.42 1.42A9 9 0 1 0 13 3zm-1 5v5l4.28 2.54 1.02-1.71-3.3-1.96V8h-2z",
 };
 const descriptions: Record<string, string> = {
   people:
@@ -1232,6 +1245,9 @@ export default function Workspace({ configured }: { configured: boolean }) {
                 disabled={busy}
                 onClick={() => go(p)}
               >
+                <SvgIcon className="nav-icon" aria-hidden="true">
+                  <path d={menuIconPaths[p]} />
+                </SvgIcon>
                 {titles[p]}
               </button>
             ))}

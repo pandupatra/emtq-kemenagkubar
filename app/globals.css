@@ -385,7 +385,9 @@ small {
   gap: 5px;
 }
 .nav-link {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   min-height: 46px;
   padding: 12px 14px;
   text-align: left;
@@ -395,6 +397,11 @@ small {
   color: var(--muted);
   font-size: 14px;
   font-weight: 600;
+}
+.nav-link .nav-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 .nav-link:hover {
   background: var(--paper);
