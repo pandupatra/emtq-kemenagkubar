@@ -10,6 +10,8 @@ export type Person = {
   id: string;
   participant_number?: string | null;
   session_open?: boolean;
+  session_starts_at?: string | null;
+  session_ends_at?: string | null;
   name: string;
   district: string;
   birth: string;

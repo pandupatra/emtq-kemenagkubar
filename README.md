@@ -112,3 +112,15 @@ materi berlaku untuk undian berikutnya dan tercatat dalam log aktivitas.
 
 Verifikasi lokal: `node scripts/edit-maqro.test.mjs` menggunakan PostgreSQL
 fixture pada port 54329 dan membatalkan seluruh perubahan uji.
+
+### Perbaikan undian pada database dengan kolom kode lama
+
+Jika fungsi undian terbaru sudah dipasang tetapi `public.results.code`
+masih wajib diisi, hasil undian gagal disimpan. Terapkan
+`supabase/migrations/202611050002_legacy_draw_code_compatibility.sql`
+melalui SQL Editor Supabase. Perbaikan ini membuat kolom lama tersebut
+opsional tanpa menghapus kode atau hasil undian sebelumnya. Database yang
+sudah tidak memiliki kolom `code` tetap kompatibel.
+
+Verifikasi lokal: `node scripts/impersonation.test.mjs` mereproduksi kegagalan
+tersebut, menguji perbaikannya, dan membatalkan seluruh perubahan uji.

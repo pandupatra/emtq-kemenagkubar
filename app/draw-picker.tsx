@@ -1,11 +1,11 @@
 "use client";
-import DataTable, {
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-} from "./data-table";
+import {
+  participantSessionOpen,
+  participantSessionLabel,
+} from "@/lib/participant-session";
+import DataTable, { TableHead, TableRow, TableCell } from "./data-table";
 
+import useSessionClock from "./use-session-clock";
 import { useState } from "react";
 import { participantNumber } from "@/lib/competition-codes";
 import type { Category, Person, Result, Session } from "@/lib/types";
@@ -27,6 +27,7 @@ export default function DrawPicker({
   onSelect: (person: Person, session: Session) => void;
   onView: (result: Result) => void;
 }) {
+  useSessionClock(people);
   const [sessionId, setSessionId] = useState("");
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
@@ -56,7 +57,7 @@ export default function DrawPicker({
           result,
           status: result
             ? "done"
-            : currentSession.open && person.session_open !== false
+            : currentSession.open && participantSessionOpen(person)
               ? "ready"
               : "closed",
         };
@@ -153,6 +154,72 @@ export default function DrawPicker({
           </p>
           {visible.length ? (
             <DataTable
+              rows={visible}
+              resetKey={JSON.stringify([sessionId, query, status])}
+              paginationDisabled={busy}
+              renderRow={({
+                person,
+                session: rowSession,
+                result,
+                status: rowStatus,
+              }) => (
+                <TableRow key={`${person.id}:${rowSession.id}`}>
+                  <TableCell data-label="Peserta">
+                    <strong>{person.name}</strong>
+                    <small>
+                      No. peserta:{" "}
+                      {participantNumber(
+                        person.participant_number,
+                        category(rowSession.category_id),
+                      )}
+                    </small>
+                    <small>{person.gender}</small>
+                  </TableCell>
+                  <TableCell data-label="Cabang">
+                    {category(rowSession.category_id)}
+                  </TableCell>
+                  <TableCell data-label="Status">
+                    <div>
+                      <span
+                        className={`status${rowStatus === "closed" ? " warn" : ""}`}
+                      >
+                        {rowStatus === "done"
+                          ? "Sudah diundi"
+                          : rowStatus === "ready"
+                            ? "Siap diundi"
+                            : !rowSession.open
+                              ? "Menunggu pembukaan sesi cabang"
+                              : participantSessionLabel(person)}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell data-label="Tindakan">
+                    {result ? (
+                      <button
+                        className="btn"
+                        disabled={busy}
+                        onClick={() => onView(result)}
+                        aria-label={`Lihat bukti ${person.name}, ${category(rowSession.category_id)}`}
+                      >
+                        Lihat bukti
+                      </button>
+                    ) : (
+                      <button
+                        className="btn primary"
+                        disabled={
+                          !rowSession.open ||
+                          !participantSessionOpen(person) ||
+                          busy
+                        }
+                        onClick={() => onSelect(person, rowSession)}
+                        aria-label={`Undi maqro ${person.name}, ${category(rowSession.category_id)}`}
+                      >
+                        Undi maqro
+                      </button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              )}
               aria-label="Pilihan peserta undian"
               className="table draw-participants"
             >
@@ -164,73 +231,6 @@ export default function DrawPicker({
                   <TableCell component="th">Tindakan</TableCell>
                 </TableRow>
               </TableHead>
-              <TableBody>
-                {visible.map(
-                  ({
-                    person,
-                    session: rowSession,
-                    result,
-                    status: rowStatus,
-                  }) => (
-                    <TableRow key={`${person.id}:${rowSession.id}`}>
-                      <TableCell data-label="Peserta">
-                        <strong>{person.name}</strong>
-                        <small>
-                          No. peserta:{" "}
-                          {participantNumber(
-                            person.participant_number,
-                            category(rowSession.category_id),
-                          )}
-                        </small>
-                        <small>{person.gender}</small>
-                      </TableCell>
-                      <TableCell data-label="Cabang">
-                        {category(rowSession.category_id)}
-                      </TableCell>
-                      <TableCell data-label="Status">
-                        <div>
-                          <span
-                            className={`status${rowStatus === "closed" ? " warn" : ""}`}
-                          >
-                            {rowStatus === "done"
-                              ? "Sudah diundi"
-                              : rowStatus === "ready"
-                                ? "Siap diundi"
-                                : !rowSession.open
-                                  ? "Sesi ditutup"
-                                  : "Ditutup"}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell data-label="Tindakan">
-                        {result ? (
-                          <button
-                            className="btn"
-                            disabled={busy}
-                            onClick={() => onView(result)}
-                            aria-label={`Lihat bukti ${person.name}, ${category(rowSession.category_id)}`}
-                          >
-                            Lihat bukti
-                          </button>
-                        ) : (
-                          <button
-                            className="btn primary"
-                            disabled={
-                              !rowSession.open ||
-                              person.session_open === false ||
-                              busy
-                            }
-                            onClick={() => onSelect(person, rowSession)}
-                            aria-label={`Undi maqro ${person.name}, ${category(rowSession.category_id)}`}
-                          >
-                            Undi maqro
-                          </button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ),
-                )}
-              </TableBody>
             </DataTable>
           ) : (
             <div className="empty">

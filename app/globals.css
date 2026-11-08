@@ -16,6 +16,46 @@
   --focus: #8a5810;
   --radius: 6px;
 }
+.table-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px 24px;
+  padding: 16px;
+  border-top: 1px solid var(--line);
+  color: var(--body);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+.table-pagination label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.table-pagination select {
+  width: auto;
+  min-height: 44px;
+}
+.table-pagination .actions {
+  align-items: center;
+  flex-wrap: wrap;
+}
+@media (max-width: 600px) {
+  .table-pagination {
+    justify-content: flex-start;
+  }
+  .table-pagination .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+  .table-pagination .actions > span {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    text-align: center;
+  }
+}
 * {
   box-sizing: border-box;
 }
@@ -1022,17 +1062,50 @@ small {
     min-width: 0;
   }
 }
-.session-status-select {
+.participant-session-control {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+.participant-session-summary {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  line-height: 1.5;
+}
+.participant-session-state {
+  color: var(--body);
+  font-size: 14px;
+  font-weight: 600;
+}
+.participant-session-detail {
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.participant-session-control .participant-session-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
   width: auto;
   max-width: 100%;
   min-height: 44px;
-  padding: 8px 10px;
-  border: 1px solid currentColor;
-  cursor: pointer;
+  padding: 8px 14px;
+  margin: 0;
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--green);
+  font-size: 13px;
+  line-height: 1.25;
+  white-space: nowrap;
 }
-.session-status-select:disabled {
-  cursor: wait;
-  opacity: 0.65;
+.participant-session-control .participant-session-button:hover:not(:disabled) {
+  border-color: var(--green);
+  background: var(--tint);
 }
 .people-table input[type="checkbox"] {
   cursor: pointer;
@@ -2034,4 +2107,59 @@ dialog::backdrop {
   background: #fff0c2;
   color: #382b00;
   border-bottom: 2px solid #8a6500;
+}
+.session-date-fields {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+  padding-top: 8px;
+}
+.session-date-fields .MuiPickersTextField-root {
+  min-width: 0;
+  width: 100%;
+}
+.session-date-fields .MuiPickersInputBase-root {
+  color: var(--body);
+  background: var(--surface);
+}
+.session-date-fields .MuiInputLabel-root,
+.session-date-fields .MuiFormHelperText-root,
+.session-date-fields .MuiIconButton-root {
+  color: var(--muted);
+}
+.session-date-fields .MuiPickersOutlinedInput-notchedOutline {
+  border-color: var(--muted);
+}
+.session-date-fields .Mui-error {
+  color: var(--danger);
+}
+.session-date-fields .MuiPickersInputBase-input {
+  min-width: 0;
+}
+.session-picker-paper {
+  background: var(--surface);
+  color: var(--body);
+}
+.session-picker-paper .MuiTypography-root,
+.session-picker-paper .MuiIconButton-root,
+.session-picker-paper .MuiPickersCalendarHeader-label,
+.session-picker-paper .MuiDayCalendar-weekDayLabel,
+.session-picker-paper .MuiButtonBase-root:not(.Mui-selected) {
+  color: inherit;
+}
+.session-picker-paper .MuiDivider-root {
+  border-color: var(--line);
+}
+.session-picker-paper .MuiDialogActions-root {
+  position: sticky;
+  bottom: 0;
+  background: var(--surface);
+}
+.session-picker-paper .MuiButtonBase-root.Mui-selected,
+.session-picker-paper .MuiButtonBase-root[aria-selected="true"] {
+  background: var(--green);
+  color: var(--on-green);
+}
+.session-picker-paper .MuiPickersDay-today {
+  border-color: var(--muted);
 }

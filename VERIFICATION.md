@@ -1,5 +1,19 @@
 # Verifikasi Maqro
 
+## Audit alur lengkap, 6 November 2026
+
+- PASS 8 pengujian unit: kode cabang, ringkasan peserta, serta batas mulai/selesai jadwal.
+- PASS `node scripts/workflows.test.mjs --browser`: 13 kelompok alur pada database sementara baru, termasuk penerapan seluruh migrasi dari nol dan lima suite SQL yang ada. Database dibuat hanya di PostgreSQL lokal `127.0.0.1:54329`, memakai role `maqro_test`, lalu dihapus setelah pengujian.
+- PASS akses panitia/kecamatan, akun nonaktif, RLS lintas kecamatan, pembukaan sesi tanpa paket, sesi peserta manual/terjadwal, jadwal belum mulai/berakhir, batch atomik, impersonasi dan audit, serta undian idempoten.
+- PASS dua undian bersamaan memperoleh paket berbeda; dua permintaan peserta yang sama memperoleh ID hasil yang sama. Paket habis ditolak; pembatalan melepas paket; edit materi mempertahankan snapshot bukti; penghapusan histori mempertahankan peserta; penghapusan peserta membersihkan hasil terkait.
+- Ditemukan dan direproduksi: permintaan yang menunggu lock dapat lolos setelah jadwal berakhir karena memakai `statement_timestamp()`. Migrasi `20261106123111_enforce_draw_time_after_lock.sql` mengganti pemeriksaan dengan waktu aktual setelah lock diperoleh. Regresi yang sebelumnya gagal kini lulus. Migrasi awal dipertahankan agar instalasi yang sudah menerapkannya dapat diperbaiki dengan migrasi tambahan ini.
+- PASS browser → HTTP fixture lokal → RPC PostgreSQL → bukti → reload. Auth Supabase dimock; pembacaan data dan mutasi bisnis memakai PostgreSQL nyata dengan role `authenticated`. UI juga menguji penyimpanan rentang WITA, perpindahan ke mode manual, tambah peserta, ekspor CSV, navigasi admin, dan viewport 360/768/1440 piksel. Tidak ada pageerror atau penulisan bisnis ke produksi. Label eksplisit untuk dropdown Status sesi diperbaiki selama pengujian.
+- PASS build produksi, TypeScript, Prettier, dan `git diff --check`. Artefak browser: `output/playwright/current-workflows-result.txt` dan `output/playwright/workflows-*.png`.
+- Pemeriksaan read-only Supabase aktif mengonfirmasi kolom jadwal, kolom audit impersonasi, RPC undian, serta tidak adanya kewajiban `results.code`. Ini tidak membuktikan migrasi perbaikan waktu sudah aktif. Migrasi perbaikan belum diterapkan pada produksi dalam audit ini.
+- Kredensial panitia yang dapat dibaca dengan format provisioning dari `AKUN.md` ditolak Auth (`invalid_credentials`). Tidak ada password diubah atau ditulis ke log. Login produksi dan operasi Auth seperti pembuatan akun/reset password belum terverifikasi end-to-end dengan kredensial yang berlaku.
+- Beberapa skrip regresi lama memerlukan snapshot schema/data awal khusus: pengujian migrasi ulang bertabrakan dengan kolom yang sudah ada, sedangkan penghapusan/edit memerlukan hasil/paket fixture. Audit versi terbaru memakai suite terpadu baru agar kondisi awal selalu konsisten; kegagalan prasyarat skrip lama tidak ditandai sebagai PASS.
+- Jalankan `npm.cmd run test:unit`, `npm.cmd run test:workflows`, dan `npm.cmd run test:browser`. Pengujian workflow memerlukan PostgreSQL lokal di atas dan `psql` PostgreSQL 15 pada lokasi instalasi Windows standar. Pengujian browser juga memerlukan server aplikasi; set `$env:MAQRO_TEST_APP_URL='http://localhost:3002'` bila server memakai port 3002, selain default 3000. Kredensial browser adalah fixture, bukan akun produksi.
+
 ## QA sebelum push, 4 November 2026
 
 - PASS build produksi, TypeScript, Prettier, dan `git diff --check`.

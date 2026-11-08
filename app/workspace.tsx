@@ -1,10 +1,9 @@
 "use client";
-import DataTable, {
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-} from "./data-table";
+import ActivityLog from "./activity-log";
+import useSessionClock from "./use-session-clock";
+import SessionScheduleForm from "./session-schedule-form";
+import ParticipantSessionControl from "./participant-session-control";
+import DataTable, { TableHead, TableRow, TableCell } from "./data-table";
 
 import {
   useCallback,
@@ -398,6 +397,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
   const [pendingChange, setPendingChange] = useState<PendingChange | null>(
     null,
   );
+  useSessionClock(rawData?.people);
   const [selectedPeople, setSelectedPeople] = useState<string[]>([]);
   const [openingSessions, setOpeningSessions] = useState<string[]>([]);
   const [modal, setModal] = useState<{
@@ -526,7 +526,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
         "people",
         "sessions",
         "results",
-        ...(profile.role === "admin" ? ["profiles", "packages", "logs"] : []),
+        ...(profile.role === "admin" ? ["profiles", "packages"] : []),
       ];
       const responses = await Promise.all(names.map((n) => readTable(db, n)));
       if (version !== request.current) return;
@@ -604,7 +604,6 @@ export default function Workspace({ configured }: { configured: boolean }) {
     setDrawResult(null);
     setError("");
     requestAnimationFrame(() => document.getElementById("workspace")?.focus());
-    void load();
   }
   async function act(
     action: MutationAction,
@@ -1554,6 +1553,103 @@ export default function Workspace({ configured }: { configured: boolean }) {
                       <section className="panel data-panel">
                         {visiblePeople.length ? (
                           <DataTable
+                            rows={visiblePeople}
+                            resetKey={JSON.stringify([
+                              query,
+                              peopleDistrict,
+                              peopleCategory,
+                              peopleGender,
+                              peopleDrawStatus,
+                              peopleSort,
+                              impersonatedId,
+                            ])}
+                            paginationDisabled={busy}
+                            renderRow={(p) => (
+                              <TableRow
+                                key={p.id}
+                                aria-busy={updating("person", p.id)}
+                              >
+                                {admin ? (
+                                  <TableCell data-label="Pilih">
+                                    <input
+                                      type="checkbox"
+                                      aria-label={`Pilih ${p.name}`}
+                                      disabled={busy}
+                                      checked={selectedPeople.includes(p.id)}
+                                      onChange={(event) =>
+                                        setSelectedPeople((current) =>
+                                          event.target.checked
+                                            ? [...current, p.id]
+                                            : current.filter(
+                                                (id) => id !== p.id,
+                                              ),
+                                        )
+                                      }
+                                    />
+                                  </TableCell>
+                                ) : null}
+                                <TableCell data-label="Peserta">
+                                  <strong>{p.name}</strong>
+                                  <small>No. peserta: {personNumbers(p)}</small>
+                                  <small>{p.gender}</small>
+                                </TableCell>
+                                <TableCell data-label="Kecamatan & cabang">
+                                  <div>
+                                    {p.district}
+                                    <small>
+                                      {p.entries.map(category).join(", ")}
+                                    </small>
+                                  </div>
+                                </TableCell>
+                                <TableCell data-label="Sesi peserta">
+                                  <ParticipantSessionControl
+                                    person={p}
+                                    busy={busy}
+                                    onConfigure={
+                                      admin
+                                        ? () =>
+                                            setModal({
+                                              kind: "participant-schedule",
+                                              person: p,
+                                            })
+                                        : undefined
+                                    }
+                                  />
+                                </TableCell>
+                                <TableCell data-label="Hasil undian">
+                                  <ParticipantResults
+                                    onDelete={
+                                      admin
+                                        ? (result) =>
+                                            setModal({
+                                              kind: "delete-history",
+                                              result,
+                                            })
+                                        : undefined
+                                    }
+                                    results={data.results.filter(
+                                      (r) => r.person_id === p.id,
+                                    )}
+                                    busy={busy}
+                                    onView={(result) =>
+                                      setModal({ kind: "receipt", result })
+                                    }
+                                    onCancel={
+                                      admin
+                                        ? (result) =>
+                                            setModal({
+                                              kind: "cancel",
+                                              result,
+                                            })
+                                        : undefined
+                                    }
+                                  />
+                                </TableCell>
+                                <TableCell data-label="Tindakan">
+                                  {personActions(p)}
+                                </TableCell>
+                              </TableRow>
+                            )}
                             aria-label="Daftar peserta"
                             className={`table people-table${admin ? " people-table-admin" : ""}`}
                           >
@@ -1568,34 +1664,15 @@ export default function Workspace({ configured }: { configured: boolean }) {
                                     }{" "}
                                     peserta dipilih
                                   </span>
-                                  {[true, false].map((open) => (
-                                    <button
-                                      key={String(open)}
-                                      className="btn"
-                                      disabled={
-                                        busy ||
-                                        !visiblePeople.some((p) =>
-                                          selectedPeople.includes(p.id),
-                                        )
-                                      }
-                                      onClick={() =>
-                                        void act(
-                                          "participant-session",
-                                          {
-                                            ids: visiblePeople
-                                              .filter((p) =>
-                                                selectedPeople.includes(p.id),
-                                              )
-                                              .map((p) => p.id),
-                                            open,
-                                          },
-                                          `Sesi peserta terpilih ${open ? "dibuka" : "ditutup"}.`,
-                                        )
-                                      }
-                                    >
-                                      {open ? "Buka" : "Tutup"} sesi terpilih
-                                    </button>
-                                  ))}
+                                  <button
+                                    className="btn"
+                                    disabled={busy || !selectedPeople.length}
+                                    onClick={() =>
+                                      setModal({ kind: "participant-schedule" })
+                                    }
+                                  >
+                                    Atur sesi terpilih
+                                  </button>
                                   <button
                                     className="btn"
                                     disabled={busy || !selectedPeople.length}
@@ -1612,7 +1689,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
                                   <TableCell component="th" scope="col">
                                     <input
                                       type="checkbox"
-                                      aria-label="Pilih semua peserta yang tampil"
+                                      aria-label="Pilih semua peserta sesuai filter, di semua halaman"
                                       disabled={busy}
                                       checked={
                                         visiblePeople.length > 0 &&
@@ -1737,122 +1814,6 @@ export default function Workspace({ configured }: { configured: boolean }) {
                                 <TableCell component="th">Tindakan</TableCell>
                               </TableRow>
                             </TableHead>
-                            <TableBody>
-                              {visiblePeople.map((p) => (
-                                <TableRow
-                                  key={p.id}
-                                  aria-busy={updating("person", p.id)}
-                                >
-                                  {admin ? (
-                                    <TableCell data-label="Pilih">
-                                      <input
-                                        type="checkbox"
-                                        aria-label={`Pilih ${p.name}`}
-                                        disabled={busy}
-                                        checked={selectedPeople.includes(p.id)}
-                                        onChange={(event) =>
-                                          setSelectedPeople((current) =>
-                                            event.target.checked
-                                              ? [...current, p.id]
-                                              : current.filter(
-                                                  (id) => id !== p.id,
-                                                ),
-                                          )
-                                        }
-                                      />
-                                    </TableCell>
-                                  ) : null}
-                                  <TableCell data-label="Peserta">
-                                    <strong>{p.name}</strong>
-                                    <small>
-                                      No. peserta: {personNumbers(p)}
-                                    </small>
-                                    <small>{p.gender}</small>
-                                  </TableCell>
-                                  <TableCell data-label="Kecamatan & cabang">
-                                    <div>
-                                      {p.district}
-                                      <small>
-                                        {p.entries.map(category).join(", ")}
-                                      </small>
-                                    </div>
-                                  </TableCell>
-                                  <TableCell data-label="Sesi peserta">
-                                    {admin ? (
-                                      <select
-                                        className={`status session-status-select${p.session_open === false ? " warn" : ""}`}
-                                        disabled={busy}
-                                        aria-label={`Status sesi ${p.name}`}
-                                        aria-busy={
-                                          pendingChange?.action ===
-                                            "participant-session" && busy
-                                        }
-                                        value={
-                                          p.session_open === false
-                                            ? "closed"
-                                            : "open"
-                                        }
-                                        onChange={(event) => {
-                                          const open =
-                                            event.target.value === "open";
-                                          void act(
-                                            "participant-session",
-                                            {
-                                              ids: [p.id],
-                                              open,
-                                            },
-                                            `Sesi ${p.name} ${open ? "dibuka" : "ditutup"}.`,
-                                          );
-                                        }}
-                                      >
-                                        <option value="open">Dibuka</option>
-                                        <option value="closed">Ditutup</option>
-                                      </select>
-                                    ) : (
-                                      <span
-                                        className={`status${p.session_open === false ? " warn" : ""}`}
-                                      >
-                                        {p.session_open === false
-                                          ? "Ditutup"
-                                          : "Dibuka"}
-                                      </span>
-                                    )}
-                                  </TableCell>
-                                  <TableCell data-label="Hasil undian">
-                                    <ParticipantResults
-                                      onDelete={
-                                        admin
-                                          ? (result) =>
-                                              setModal({
-                                                kind: "delete-history",
-                                                result,
-                                              })
-                                          : undefined
-                                      }
-                                      results={data.results.filter(
-                                        (r) => r.person_id === p.id,
-                                      )}
-                                      busy={busy}
-                                      onView={(result) =>
-                                        setModal({ kind: "receipt", result })
-                                      }
-                                      onCancel={
-                                        admin
-                                          ? (result) =>
-                                              setModal({
-                                                kind: "cancel",
-                                                result,
-                                              })
-                                          : undefined
-                                      }
-                                    />
-                                  </TableCell>
-                                  <TableCell data-label="Tindakan">
-                                    {personActions(p)}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
                           </DataTable>
                         ) : (
                           <div className="panel-inset">
@@ -1877,6 +1838,30 @@ export default function Workspace({ configured }: { configured: boolean }) {
                       <section className="panel data-panel section-gap">
                         {data.sessions.length ? (
                           <DataTable
+                            rows={data.sessions}
+                            resetKey={"sessions"}
+                            paginationDisabled={busy}
+                            renderRow={(s) => (
+                              <SessionRow
+                                key={s.id}
+                                session={s}
+                                name={category(s.category_id)}
+                                count={
+                                  data.packages.filter(
+                                    (m) => m.category_id === s.category_id,
+                                  ).length
+                                }
+                                busy={busy}
+                                updating={updating("session", s.id)}
+                                save={async (open) =>
+                                  (await act(
+                                    "session",
+                                    { id: s.id, open, repeat: false },
+                                    "Pengaturan sesi disimpan.",
+                                  )) !== null
+                                }
+                              />
+                            )}
                             aria-label="Cabang dan sesi"
                             className="table sessions-table"
                           >
@@ -1896,29 +1881,6 @@ export default function Workspace({ configured }: { configured: boolean }) {
                                 </TableCell>
                               </TableRow>
                             </TableHead>
-                            <TableBody>
-                              {data.sessions.map((s) => (
-                                <SessionRow
-                                  key={s.id}
-                                  session={s}
-                                  name={category(s.category_id)}
-                                  count={
-                                    data.packages.filter(
-                                      (m) => m.category_id === s.category_id,
-                                    ).length
-                                  }
-                                  busy={busy}
-                                  updating={updating("session", s.id)}
-                                  save={async (open) =>
-                                    (await act(
-                                      "session",
-                                      { id: s.id, open, repeat: false },
-                                      "Pengaturan sesi disimpan.",
-                                    )) !== null
-                                  }
-                                />
-                              ))}
-                            </TableBody>
                           </DataTable>
                         ) : (
                           <div className="panel-inset">
@@ -1945,7 +1907,85 @@ export default function Workspace({ configured }: { configured: boolean }) {
                   ) : null}
                   {page === "accounts" && admin ? (
                     <section className="panel data-panel">
-                      <DataTable aria-label="Akun kecamatan" className="table">
+                      <DataTable
+                        rows={data.profiles.filter(
+                          (p) => p.role === "district",
+                        )}
+                        resetKey={"accounts"}
+                        paginationDisabled={busy}
+                        renderRow={(p) => (
+                          <TableRow
+                            key={p.id}
+                            aria-busy={updating("account", p.id)}
+                          >
+                            <TableCell data-label="Kecamatan">
+                              <strong>{p.district}</strong>
+                            </TableCell>
+                            <TableCell data-label="Nama pengguna">
+                              {p.username}
+                            </TableCell>
+                            <TableCell data-label="Status">
+                              <Badge>{p.active ? "Aktif" : "Nonaktif"}</Badge>
+                            </TableCell>
+                            <TableCell data-label="Tindakan">
+                              <div className="actions">
+                                <button
+                                  className="btn"
+                                  disabled={busy || !p.active}
+                                  onClick={() => {
+                                    if (
+                                      window.confirm(
+                                        "Masuk sebagai Kecamatan " +
+                                          p.district +
+                                          "? Undian yang dilakukan akan disimpan sebagai hasil resmi atas nama kecamatan ini, dengan Anda sebagai admin pelaksana.",
+                                      )
+                                    )
+                                      changeImpersonation(p.id);
+                                  }}
+                                >
+                                  Masuk sebagai kecamatan
+                                </button>
+                                <button
+                                  className="btn icon-btn"
+                                  disabled={busy}
+                                  aria-label={`Edit akun ${p.district}`}
+                                  title={`Edit akun ${p.district}`}
+                                  onClick={() =>
+                                    setModal({
+                                      kind: "district-account",
+                                      id: p.id,
+                                    })
+                                  }
+                                >
+                                  <ActionIcon name="edit" />
+                                </button>
+                                <button
+                                  className="btn"
+                                  disabled={busy}
+                                  onClick={() =>
+                                    setModal({
+                                      kind: "toggle-account",
+                                      id: p.id,
+                                    })
+                                  }
+                                >
+                                  {p.active ? "Nonaktifkan" : "Aktifkan"}
+                                </button>
+                                <button
+                                  className="btn"
+                                  onClick={() =>
+                                    setModal({ kind: "reset", id: p.id })
+                                  }
+                                >
+                                  Reset kata sandi
+                                </button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        aria-label="Akun kecamatan"
+                        className="table"
+                      >
                         <TableHead>
                           <TableRow>
                             <TableCell component="th">Kecamatan</TableCell>
@@ -1954,82 +1994,6 @@ export default function Workspace({ configured }: { configured: boolean }) {
                             <TableCell component="th">Tindakan</TableCell>
                           </TableRow>
                         </TableHead>
-                        <TableBody>
-                          {data.profiles
-                            .filter((p) => p.role === "district")
-                            .map((p) => (
-                              <TableRow
-                                key={p.id}
-                                aria-busy={updating("account", p.id)}
-                              >
-                                <TableCell data-label="Kecamatan">
-                                  <strong>{p.district}</strong>
-                                </TableCell>
-                                <TableCell data-label="Nama pengguna">
-                                  {p.username}
-                                </TableCell>
-                                <TableCell data-label="Status">
-                                  <Badge>
-                                    {p.active ? "Aktif" : "Nonaktif"}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell data-label="Tindakan">
-                                  <div className="actions">
-                                    <button
-                                      className="btn"
-                                      disabled={busy || !p.active}
-                                      onClick={() => {
-                                        if (
-                                          window.confirm(
-                                            "Masuk sebagai Kecamatan " +
-                                              p.district +
-                                              "? Undian yang dilakukan akan disimpan sebagai hasil resmi atas nama kecamatan ini, dengan Anda sebagai admin pelaksana.",
-                                          )
-                                        )
-                                          changeImpersonation(p.id);
-                                      }}
-                                    >
-                                      Masuk sebagai kecamatan
-                                    </button>
-                                    <button
-                                      className="btn icon-btn"
-                                      disabled={busy}
-                                      aria-label={`Edit akun ${p.district}`}
-                                      title={`Edit akun ${p.district}`}
-                                      onClick={() =>
-                                        setModal({
-                                          kind: "district-account",
-                                          id: p.id,
-                                        })
-                                      }
-                                    >
-                                      <ActionIcon name="edit" />
-                                    </button>
-                                    <button
-                                      className="btn"
-                                      disabled={busy}
-                                      onClick={() =>
-                                        setModal({
-                                          kind: "toggle-account",
-                                          id: p.id,
-                                        })
-                                      }
-                                    >
-                                      {p.active ? "Nonaktifkan" : "Aktifkan"}
-                                    </button>
-                                    <button
-                                      className="btn"
-                                      onClick={() =>
-                                        setModal({ kind: "reset", id: p.id })
-                                      }
-                                    >
-                                      Reset kata sandi
-                                    </button>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                        </TableBody>
                       </DataTable>
                       {!data.profiles.some((p) => p.role === "district") ? (
                         <div className="panel-inset">
@@ -2216,23 +2180,8 @@ export default function Workspace({ configured }: { configured: boolean }) {
                       ) : null}
                     </div>
                   ) : null}
-                  {page === "logs" && admin ? (
-                    <section className="panel">
-                      <h2>Catatan aktivitas</h2>
-                      {data.logs.length ? (
-                        data.logs.map((l) => (
-                          <div className="log-item" key={l.id}>
-                            {l.message}
-                            <small>{date(l.created_at)}</small>
-                          </div>
-                        ))
-                      ) : (
-                        <Empty title="Belum ada perubahan">
-                          Perubahan peserta, pengaturan sesi, dan hasil undian
-                          akan tercatat setelah dilakukan.
-                        </Empty>
-                      )}
-                    </section>
+                  {admin ? (
+                    <ActivityLog active={page === "logs"} revision={rawData!} />
                   ) : null}
                 </>
               )}
@@ -2248,6 +2197,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
           className={modal.kind === "account" ? "account-dialog" : undefined}
           title={
             {
+              "participant-schedule": "Atur sesi",
               person: modal.person ? "Edit peserta" : "Tambah peserta",
               detail: "Detail peserta",
               "delete-person": "Hapus peserta",
@@ -2273,6 +2223,23 @@ export default function Workspace({ configured }: { configured: boolean }) {
           busy={busy}
         >
           {errorBox}
+          {modal.kind === "participant-schedule" && admin ? (
+            <SessionScheduleForm
+              people={
+                modal.person
+                  ? [modal.person]
+                  : data.people.filter((p) => selectedPeople.includes(p.id))
+              }
+              busy={busy}
+              onSave={(values) => {
+                void act(
+                  "participant-session",
+                  values,
+                  "Pengaturan sesi disimpan.",
+                );
+              }}
+            />
+          ) : null}
           {modal.kind === "delete-history" && admin ? (
             <form
               className="form-stack"

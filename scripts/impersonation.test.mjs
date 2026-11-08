@@ -70,8 +70,34 @@ try {
   await rejected(district.id, district.id, /Impersonasi/);
   await rejected(admin.id, admin.id, /tujuan/);
   await rejected(admin.id, undefined, /hanya untuk kecamatan/);
+  const previousResult = await draw(district.id);
+  await db.query("update public.results set cancelled=true where id=$1", [
+    previousResult.id,
+  ]);
+  await db.query(
+    "alter table public.results add column code text not null default 'LEGACY'",
+  );
+  await db.query("alter table public.results alter column code drop default");
+  const oldResults = (
+    await db.query("select * from public.results order by id")
+  ).rows;
+  await rejected(admin.id, district.id, /null value in column "code"/);
+  const repair = fs
+    .readFileSync(
+      "supabase/migrations/202611050002_legacy_draw_code_compatibility.sql",
+      "utf8",
+    )
+    .replace(/^begin;/, "")
+    .replace(/commit;\s*$/, "");
+  await db.query(repair);
+  await db.query(repair);
+  assert.deepEqual(
+    (await db.query("select * from public.results order by id")).rows,
+    oldResults,
+  );
   const result = await draw(admin.id, district.id);
   assert.ok(result.id);
+  assert.equal(result.code, null);
   const log = (
     await db.query(
       "select * from public.logs where impersonated_profile_id=$1",
@@ -84,8 +110,10 @@ try {
     district.id,
   ]);
   await rejected(admin.id, district.id, /tujuan/);
+  await db.query("alter table public.results drop column code");
+  await db.query(repair);
   console.log(
-    "PASS: impersonation authorization, real draw, actor audit, duplicate protection, inactive target",
+    "PASS: legacy code failure reproduced; repair preserves history, supports repeated runs and absent code; real draw, actor audit, duplicate protection, impersonation authorization, inactive target",
   );
 } finally {
   await db.query("rollback");

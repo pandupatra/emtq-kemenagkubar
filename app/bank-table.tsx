@@ -1,10 +1,5 @@
 "use client";
-import DataTable, {
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-} from "./data-table";
+import DataTable, { TableHead, TableRow, TableCell } from "./data-table";
 
 import { useMemo, useState } from "react";
 import type { Category, Package, Person, Result } from "@/lib/types";
@@ -162,7 +157,71 @@ export default function BankTable({
       </p>
       <div className="panel data-panel">
         {filtered.length ? (
-          <DataTable className="table bank-table">
+          <DataTable
+            rows={filtered}
+            resetKey={JSON.stringify([query, category, status, sort])}
+            paginationDisabled={busy}
+            renderRow={(row) => (
+              <TableRow key={row.id}>
+                <TableCell data-label="Cabang">{row.category}</TableCell>
+                <TableCell data-label="Materi">
+                  <div>
+                    {row.surah}
+                    <small>Ayat / rentang materi: {row.verses}</small>
+                  </div>
+                </TableCell>
+                <TableCell data-label="Status">
+                  <span
+                    className={row.recipients.length ? "status warn" : "status"}
+                  >
+                    {row.recipients.length ? "Sudah diundi" : "Tersedia"}
+                  </span>
+                </TableCell>
+                <TableCell data-label="Penerima undian">
+                  {row.recipients.length ? (
+                    <div className="bank-recipients">
+                      {row.recipients.map((recipient) => (
+                        <div
+                          className="bank-recipient"
+                          key={recipient.result.id}
+                        >
+                          <div>
+                            <strong>{recipient.name}</strong>
+                            <small>
+                              {recipient.district} · {recipient.result.gender}
+                            </small>
+                          </div>
+                          <button
+                            className="btn icon-btn"
+                            title="Lihat bukti undian"
+                            aria-label={`Lihat bukti ${row.surah}, ${recipient.name}`}
+                            disabled={busy}
+                            onClick={() => onView(recipient.result)}
+                          >
+                            <ActionIcon name="eye" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="muted">Belum ada penerima</span>
+                  )}
+                </TableCell>
+                <TableCell data-label="Tindakan">
+                  <button
+                    className="btn icon-btn"
+                    disabled={busy}
+                    onClick={() => onEdit(row)}
+                    title="Edit maqro"
+                    aria-label={`Edit maqro ${row.surah}, ${row.verses}`}
+                  >
+                    <ActionIcon name="edit" />
+                  </button>
+                </TableCell>
+              </TableRow>
+            )}
+            className="table bank-table"
+          >
             <caption className="sr-only">
               Paket maqro dan penerima undian aktif
             </caption>
@@ -185,69 +244,6 @@ export default function BankTable({
                 </TableCell>
               </TableRow>
             </TableHead>
-            <TableBody>
-              {filtered.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell data-label="Cabang">{row.category}</TableCell>
-                  <TableCell data-label="Materi">
-                    <div>
-                      {row.surah}
-                      <small>Ayat / rentang materi: {row.verses}</small>
-                    </div>
-                  </TableCell>
-                  <TableCell data-label="Status">
-                    <span
-                      className={
-                        row.recipients.length ? "status warn" : "status"
-                      }
-                    >
-                      {row.recipients.length ? "Sudah diundi" : "Tersedia"}
-                    </span>
-                  </TableCell>
-                  <TableCell data-label="Penerima undian">
-                    {row.recipients.length ? (
-                      <div className="bank-recipients">
-                        {row.recipients.map((recipient) => (
-                          <div
-                            className="bank-recipient"
-                            key={recipient.result.id}
-                          >
-                            <div>
-                              <strong>{recipient.name}</strong>
-                              <small>
-                                {recipient.district} · {recipient.result.gender}
-                              </small>
-                            </div>
-                            <button
-                              className="btn icon-btn"
-                              title="Lihat bukti undian"
-                              aria-label={`Lihat bukti ${row.surah}, ${recipient.name}`}
-                              disabled={busy}
-                              onClick={() => onView(recipient.result)}
-                            >
-                              <ActionIcon name="eye" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="muted">Belum ada penerima</span>
-                    )}
-                  </TableCell>
-                  <TableCell data-label="Tindakan">
-                    <button
-                      className="btn icon-btn"
-                      disabled={busy}
-                      onClick={() => onEdit(row)}
-                      title="Edit maqro"
-                      aria-label={`Edit maqro ${row.surah}, ${row.verses}`}
-                    >
-                      <ActionIcon name="edit" />
-                    </button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
           </DataTable>
         ) : (
           <div className="panel-inset">
