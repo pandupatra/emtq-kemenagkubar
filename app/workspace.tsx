@@ -1,5 +1,6 @@
 "use client";
 import ActivityLog from "./activity-log";
+import useWorkspaceSync from "./use-workspace-sync";
 import useSessionClock from "./use-session-clock";
 import SessionScheduleForm from "./session-schedule-form";
 import ParticipantSessionControl from "./participant-session-control";
@@ -415,6 +416,51 @@ export default function Workspace({ configured }: { configured: boolean }) {
     [drawResult, setDrawResult] = useState<Result | null>(null);
   const request = useRef(0),
     mutation = useRef(false);
+  useWorkspaceSync(
+    rawData?.profile,
+    () =>
+      mutation.current ||
+      loading ||
+      !!modal ||
+      drawStep === 2 ||
+      drawStep === 3,
+    async (tables, valid) => {
+      const version = request.current;
+      const { data: profile, error: profileError } = await supabase()
+        .from("profiles")
+        .select("*")
+        .eq("id", rawData!.profile.id)
+        .single();
+      if (profileError) throw profileError;
+      if (!valid() || version !== request.current)
+        throw new Error("Sync deferred");
+      if (!profile?.active) {
+        setData(null);
+        return;
+      }
+      const rows = await Promise.all(
+        tables.map((name) => readTable(supabase(), name)),
+      );
+      if (!valid() || version !== request.current)
+        throw new Error("Sync deferred");
+      if (
+        profile.role !== rawData!.profile.role ||
+        profile.district !== rawData!.profile.district
+      ) {
+        await load();
+        return;
+      }
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              profile,
+              ...Object.fromEntries(tables.map((name, i) => [name, rows[i]])),
+            }
+          : current,
+      );
+    },
+  );
   const [impersonatedId, setImpersonatedId] = useState<string | null>(null);
   const targetProfile =
     rawData?.profile.role === "admin"
@@ -616,6 +662,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
       payload = { ...payload, impersonated_profile_id: targetProfile.id };
     }
     mutation.current = true;
+    request.current++;
     setBusy(true);
     setPendingChange({
       action,

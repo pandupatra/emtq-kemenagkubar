@@ -25,6 +25,19 @@ const fresh = async () => {
 };
 try {
   await db.connect();
+  // Emulate the Realtime SQL interface locally; WebSocket delivery needs hosted QA.
+  await db.query(`create schema realtime;
+    create table realtime.messages(id bigint generated always as identity, topic text, extension text, payload jsonb);
+    alter table realtime.messages enable row level security;
+    grant usage on schema realtime to authenticated;
+    grant select on realtime.messages to authenticated;
+    create function realtime.topic() returns text language sql stable as $$
+      select current_setting('realtime.topic', true);
+    $$;
+    create function realtime.send(payload jsonb, event text, topic text, private boolean)
+      returns void language sql as $$
+      insert into realtime.messages(topic,extension,payload) values(topic,'broadcast',payload);
+    $$;`);
   await db.query(`create schema auth;
     create table auth.users(id uuid primary key);
     create function auth.uid() returns uuid language sql stable as $$
@@ -64,6 +77,45 @@ try {
       [category],
     )
   ).rows[0].id;
+  await db.query("truncate realtime.messages");
+  await db.query(
+    "update public.profiles set active=active where role='district'",
+  );
+  const notices = (
+    await db.query("select topic,payload from realtime.messages order by topic")
+  ).rows;
+  assert.deepEqual(
+    notices.map((r) => r.topic),
+    ["workspace:admin", "workspace:district:DAMAI", "workspace:district:MELAK"],
+  );
+  assert.ok(
+    notices.every((r) => JSON.stringify(r.payload) === '{"table":"profiles"}'),
+  );
+  await db.query("begin");
+  await db.query("select set_config('request.jwt.claim.sub',$1,true)", [
+    district,
+  ]);
+  await db.query("set local role authenticated");
+  for (const [topic, expected] of [
+    ["workspace:admin", 0],
+    ["workspace:district:DAMAI", 0],
+    ["workspace:district:MELAK", 1],
+  ]) {
+    await db.query("select set_config('realtime.topic',$1,true)", [topic]);
+    assert.equal(
+      (
+        await db.query(
+          "select count(*)::int n from realtime.messages where topic=$1",
+          [topic],
+        )
+      ).rows[0].n,
+      expected,
+    );
+  }
+  await db.query("rollback");
+  pass(
+    "Realtime bulk notifications are private, scoped and contain no participant data",
+  );
   const rpc = async (client, actor, action, payload) => {
     await client.query("begin");
     try {
