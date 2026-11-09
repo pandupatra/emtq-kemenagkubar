@@ -1262,6 +1262,14 @@ export default function Workspace({ configured }: { configured: boolean }) {
       const byName =
         compareText.compare(a.name, b.name) || compareText.compare(a.id, b.id);
       switch (peopleSort) {
+        case "number-asc":
+          return (
+            compareText.compare(personNumbers(a), personNumbers(b)) || byName
+          );
+        case "number-desc":
+          return (
+            compareText.compare(personNumbers(b), personNumbers(a)) || byName
+          );
         case "name-desc":
           return -byName;
         case "district-asc":
@@ -1637,16 +1645,14 @@ export default function Workspace({ configured }: { configured: boolean }) {
                                 ) : null}
                                 <TableCell data-label="Peserta">
                                   <strong>{p.name}</strong>
-                                  <small>No. peserta: {personNumbers(p)}</small>
                                   <small>{p.gender}</small>
+                                  <small>{p.district}</small>
                                 </TableCell>
-                                <TableCell data-label="Kecamatan & cabang">
-                                  <div>
-                                    {p.district}
-                                    <small>
-                                      {p.entries.map(category).join(", ")}
-                                    </small>
-                                  </div>
+                                <TableCell data-label="No. peserta">
+                                  {personNumbers(p)}
+                                  <small>
+                                    {p.entries.map(category).join(", ")}
+                                  </small>
                                 </TableCell>
                                 <TableCell data-label="Sesi peserta">
                                   <ParticipantSessionControl
@@ -1810,47 +1816,43 @@ export default function Workspace({ configured }: { configured: boolean }) {
                                   component="th"
                                   scope="col"
                                   aria-sort={
-                                    peopleSort === "district-asc"
+                                    peopleSort === "number-asc"
                                       ? "ascending"
-                                      : peopleSort === "district-desc"
+                                      : peopleSort === "number-desc"
                                         ? "descending"
                                         : "none"
                                   }
                                 >
-                                  {admin ? (
-                                    <button
-                                      type="button"
-                                      className="table-sort"
-                                      onClick={() =>
-                                        setPeopleSort(
-                                          peopleSort === "district-asc"
-                                            ? "district-desc"
-                                            : "district-asc",
-                                        )
-                                      }
-                                    >
-                                      Kecamatan & cabang{" "}
-                                      <span aria-hidden="true">
-                                        <svg
-                                          width="16"
-                                          height="16"
-                                          viewBox="0 0 16 16"
-                                          fill="none"
-                                          stroke="currentColor"
-                                          strokeWidth="1.5"
-                                        >
-                                          {peopleSort !== "district-desc" ? (
-                                            <path d="m4 6 4-4 4 4" />
-                                          ) : null}
-                                          {peopleSort !== "district-asc" ? (
-                                            <path d="m4 10 4 4 4-4" />
-                                          ) : null}
-                                        </svg>
-                                      </span>
-                                    </button>
-                                  ) : (
-                                    "Kecamatan & cabang"
-                                  )}
+                                  <button
+                                    type="button"
+                                    className="table-sort"
+                                    onClick={() =>
+                                      setPeopleSort(
+                                        peopleSort === "number-asc"
+                                          ? "number-desc"
+                                          : "number-asc",
+                                      )
+                                    }
+                                  >
+                                    No. peserta{" "}
+                                    <span aria-hidden="true">
+                                      <svg
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 16 16"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="1.5"
+                                      >
+                                        {peopleSort !== "number-desc" ? (
+                                          <path d="m4 6 4-4 4 4" />
+                                        ) : null}
+                                        {peopleSort !== "number-asc" ? (
+                                          <path d="m4 10 4 4 4-4" />
+                                        ) : null}
+                                      </svg>
+                                    </span>
+                                  </button>
                                 </TableCell>
                                 <TableCell component="th">
                                   Sesi peserta
