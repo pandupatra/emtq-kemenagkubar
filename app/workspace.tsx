@@ -1250,6 +1250,8 @@ export default function Workspace({ configured }: { configured: boolean }) {
         return false;
       if (peopleCategory && !p.entries.includes(peopleCategory)) return false;
       if (peopleGender && p.gender !== peopleGender) return false;
+      if (peopleDrawStatus === "scheduled")
+        return !!p.session_starts_at && !!p.session_ends_at;
       const entries = peopleCategory ? [peopleCategory] : p.entries;
       const drawn = entries.some((id) =>
         activeDraws.has(`${p.id}:${category(id)}`),
@@ -1262,6 +1264,24 @@ export default function Workspace({ configured }: { configured: boolean }) {
       const byName =
         compareText.compare(a.name, b.name) || compareText.compare(a.id, b.id);
       switch (peopleSort) {
+        case "session-asc":
+        case "session-desc": {
+          const startA = a.session_starts_at
+            ? Date.parse(a.session_starts_at)
+            : NaN;
+          const startB = b.session_starts_at
+            ? Date.parse(b.session_starts_at)
+            : NaN;
+          const scheduledA = Number.isFinite(startA);
+          const scheduledB = Number.isFinite(startB);
+          if (scheduledA !== scheduledB) return scheduledA ? -1 : 1;
+          if (!scheduledA) return byName;
+          return (
+            (peopleSort === "session-asc"
+              ? startA - startB
+              : startB - startA) || byName
+          );
+        }
         case "number-asc":
           return (
             compareText.compare(personNumbers(a), personNumbers(b)) || byName
@@ -1583,6 +1603,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
                             <option value="">Semua status</option>
                             <option value="drawn">Sudah mengundi</option>
                             <option value="not-drawn">Belum mengundi</option>
+                            <option value="scheduled">Sesi terjadwal</option>
                           </select>
                         </div>
                       </div>
@@ -1854,8 +1875,48 @@ export default function Workspace({ configured }: { configured: boolean }) {
                                     </span>
                                   </button>
                                 </TableCell>
-                                <TableCell component="th">
-                                  Sesi peserta
+                                <TableCell
+                                  component="th"
+                                  scope="col"
+                                  aria-sort={
+                                    peopleSort === "session-asc"
+                                      ? "ascending"
+                                      : peopleSort === "session-desc"
+                                        ? "descending"
+                                        : "none"
+                                  }
+                                >
+                                  <button
+                                    type="button"
+                                    className="table-sort"
+                                    title="Urutkan berdasarkan waktu mulai sesi"
+                                    onClick={() =>
+                                      setPeopleSort(
+                                        peopleSort === "session-asc"
+                                          ? "session-desc"
+                                          : "session-asc",
+                                      )
+                                    }
+                                  >
+                                    Sesi peserta{" "}
+                                    <span aria-hidden="true">
+                                      <svg
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 16 16"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="1.5"
+                                      >
+                                        {peopleSort !== "session-desc" ? (
+                                          <path d="m4 6 4-4 4 4" />
+                                        ) : null}
+                                        {peopleSort !== "session-asc" ? (
+                                          <path d="m4 10 4 4 4-4" />
+                                        ) : null}
+                                      </svg>
+                                    </span>
+                                  </button>
                                 </TableCell>
                                 <TableCell component="th">
                                   Hasil undian

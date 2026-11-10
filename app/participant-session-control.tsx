@@ -11,13 +11,30 @@ export default function ParticipantSessionControl({
   onConfigure?: () => void;
 }) {
   const [status, ...details] = participantSessionLabel(person).split(" · ");
+  const formatTime = (value: string) =>
+    new Intl.DateTimeFormat("id-ID", {
+      timeZone: "Asia/Makassar",
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value)) + " WITA";
   return (
     <div className="participant-session-control">
       <div className="participant-session-summary" role="status">
         <span className="participant-session-state">{status}</span>
-        <span className="participant-session-detail">
-          {details.join(" · ")}
-        </span>
+        {person.session_starts_at && person.session_ends_at ? (
+          <>
+            <span className="participant-session-detail">
+              Mulai: {formatTime(person.session_starts_at)}
+            </span>
+            <span className="participant-session-detail">
+              Selesai: {formatTime(person.session_ends_at)}
+            </span>
+          </>
+        ) : (
+          <span className="participant-session-detail">
+            {details.join(" · ")}
+          </span>
+        )}
       </div>
       {onConfigure ? (
         <button
