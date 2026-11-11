@@ -331,6 +331,7 @@ function Receipt({ result: r, person }: { result: Result; person?: Person }) {
 }
 
 export default function Workspace({ configured }: { configured: boolean }) {
+  const [exporting, setExporting] = useState(false);
   const [rawData, setData] = useState<Data | null>(null),
     [loading, setLoading] = useState(configured),
     [busy, setBusy] = useState(false),
@@ -1065,53 +1066,32 @@ export default function Workspace({ configured }: { configured: boolean }) {
       </div>
     );
   }
-  function exportCSV() {
-    if (!data) return;
-    const cell = (v: string) =>
-      '"' +
-      (/^[=+@\-\t\r\n]/.test(v) ? "'" : "") +
-      v.replaceAll('"', '""') +
-      '"';
-    const rows = [
-      [
-        "Nomor bukti",
-        "Peserta",
-        "No. peserta",
-        "Kecamatan",
-        "Kategori",
-        "Surah / materi",
-        "Ayat / rentang materi",
-        "Waktu WITA",
-        "Status",
-        "Alasan",
-      ],
-      ...data.results.map((r) => [
-        r.id,
-        r.name,
-        participantNumber(
-          data.people.find((p) => p.id === r.person_id)?.participant_number,
-          r.category,
-        ),
-        r.district,
-        r.category,
-        r.surah,
-        r.verses,
-        date(r.created_at),
-        r.cancelled ? "Dibatalkan" : "Tersimpan",
-        r.reason,
-      ]),
-    ];
-    const url = URL.createObjectURL(
-      new Blob(
-        ["\ufeff" + rows.map((row) => row.map(cell).join(",")).join("\r\n")],
-        { type: "text/csv;charset=utf-8" },
-      ),
-    );
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "hasil-undian-maqro.csv";
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  async function exportXLSX() {
+    if (!data || exporting) return;
+    setExporting(true);
+    setError("");
+    try {
+      const { participantWorkbookBuffer } =
+        await import("@/lib/participant-export");
+      const buffer = await participantWorkbookBuffer(data);
+      const url = URL.createObjectURL(
+        new Blob([new Uint8Array(buffer)], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        }),
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `peserta-${Date.now()}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setFeedback("XLSX peserta dan hasil undian aktif telah dibuat.");
+    } catch {
+      setError("XLSX belum dapat dibuat. Silakan coba lagi.");
+    } finally {
+      setExporting(false);
+    }
   }
   const themeButton = (
     <button
@@ -1455,10 +1435,12 @@ export default function Workspace({ configured }: { configured: boolean }) {
                 {page === "people" ? (
                   <button
                     className="btn"
-                    disabled={!data.results.length || busy}
-                    onClick={exportCSV}
+                    disabled={!data.people.length || busy || exporting}
+                    onClick={() => void exportXLSX()}
+                    aria-busy={exporting}
+                    title="Seluruh peserta dan hasil undian aktif dalam cakupan akun ini"
                   >
-                    Ekspor hasil CSV
+                    {exporting ? "Membuat XLSX…" : "Export Excel"}
                   </button>
                 ) : null}
                 {page === "accounts" && admin ? (
