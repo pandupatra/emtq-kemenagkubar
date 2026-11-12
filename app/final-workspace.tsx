@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabase";
 import {
   finalExportData,
   finalPeople,
+  filterFinalParticipants,
+  type FinalPeopleSort,
   type FinalData,
 } from "@/lib/final-round";
 import { participantNumber } from "@/lib/competition-codes";
@@ -75,6 +77,16 @@ export default function FinalWorkspace({
   const [category, setCategory] = useState("");
   const [district, setDistrict] = useState("");
   const [drawStatus, setDrawStatus] = useState("");
+  const [gender, setGender] = useState("");
+  const [sort, setSort] = useState<FinalPeopleSort>("name-asc");
+  const resetFilters = () => {
+    setQuery("");
+    setCategory("");
+    setDistrict("");
+    setDrawStatus("");
+    setGender("");
+    setSort("name-asc");
+  };
   const [selected, setSelected] = useState<string[]>([]);
   const [selection, setSelection] = useState<{
     person: Person;
@@ -141,6 +153,8 @@ export default function FinalWorkspace({
   useEffect(() => {
     setQuery("");
     setCategory("");
+    setGender("");
+    setSort("name-asc");
     setSelected([]);
     setSelection(null);
     setStep(1);
@@ -231,22 +245,19 @@ export default function FinalWorkspace({
     }
   }
   const summaryData = finalExportData(base, data);
-  const drawnPeople = new Set(
-    data.final_results.filter((r) => !r.cancelled).map((r) => r.person_id),
+  const hasFilters = Boolean(
+    query ||
+    category ||
+    district ||
+    drawStatus ||
+    gender ||
+    sort !== "name-asc",
   );
-  const search = (p: Person) =>
-    (!category || p.entries.includes(category)) &&
-    (!district || p.district === district) &&
-    (!drawStatus ||
-      (drawStatus === "drawn"
-        ? drawnPeople.has(p.id)
-        : !drawnPeople.has(p.id))) &&
-    `${p.name} ${personNumber(p)} ${p.district}`
-      .toLocaleLowerCase("id")
-      .includes(query.trim().toLocaleLowerCase("id"));
-  const filtered = people
-    .filter(search)
-    .sort((a, b) => a.name.localeCompare(b.name, "id", { numeric: true }));
+  const filtered = filterFinalParticipants(
+    summaryData,
+    { query, category, district, gender, status: drawStatus, sort },
+    personNumber,
+  );
   const chosen = people.filter((p) => selected.includes(p.id));
   const activeResults = data.final_results.filter(
     (r) => !r.cancelled && people.some((p) => p.id === r.person_id),
@@ -275,7 +286,7 @@ export default function FinalWorkspace({
     };
   };
   const filters = (
-    <div className="filters final-filters">
+    <div className="filters people-filters">
       <div className="field">
         <label htmlFor="final-search">Cari finalis</label>
         <input
@@ -328,6 +339,18 @@ export default function FinalWorkspace({
         </div>
       ) : null}
       <div className="field">
+        <label htmlFor="final-gender">Putra / Putri</label>
+        <select
+          id="final-gender"
+          value={gender}
+          onChange={(e) => setGender(e.target.value)}
+        >
+          <option value="">Semua peserta</option>
+          <option value="Putra">Putra</option>
+          <option value="Putri">Putri</option>
+        </select>
+      </div>
+      <div className="field">
         <label htmlFor="final-draw-status">Status undian</label>
         <select
           id="final-draw-status"
@@ -337,19 +360,24 @@ export default function FinalWorkspace({
           <option value="">Semua status</option>
           <option value="drawn">Sudah mengundi</option>
           <option value="not-drawn">Belum mengundi</option>
+          <option value="scheduled">Sesi terjadwal</option>
         </select>
       </div>
-      <button
-        className="btn"
-        onClick={() => {
-          setQuery("");
-          setCategory("");
-          setDistrict("");
-          setDrawStatus("");
-        }}
-      >
-        Reset filter
-      </button>
+      <div className="field">
+        <label htmlFor="final-sort">Urutkan</label>
+        <select
+          id="final-sort"
+          value={sort}
+          onChange={(e) => setSort(e.target.value as FinalPeopleSort)}
+        >
+          <option value="name-asc">Nama A–Z</option>
+          <option value="name-desc">Nama Z–A</option>
+          <option value="number-asc">No. peserta terkecil</option>
+          <option value="number-desc">No. peserta terbesar</option>
+          <option value="session-asc">Sesi paling awal</option>
+          <option value="session-desc">Sesi paling akhir</option>
+        </select>
+      </div>
     </div>
   );
 
@@ -479,6 +507,24 @@ export default function FinalWorkspace({
       {page === "people" ? (
         <>
           {filters}
+          <div className="people-filter-summary">
+            <p role="status">
+              Menampilkan {filtered.length} dari {people.length} finalis
+            </p>
+            <button
+              type="button"
+              className="btn"
+              onClick={resetFilters}
+              disabled={!hasFilters}
+            >
+              Reset filter &amp; urutan
+            </button>
+          </div>
+          <p className="hint">
+            {category
+              ? "Status undian mengikuti cabang yang dipilih."
+              : "Sudah mengundi berarti memiliki hasil aktif pada setidaknya satu cabang."}
+          </p>
           {admin && chosen.length ? (
             <div className="actions">
               <p>{chosen.length} finalis terpilih</p>
@@ -505,12 +551,20 @@ export default function FinalWorkspace({
             </div>
           ) : !filtered.length ? (
             <p className="empty">
-              Finalis tidak ditemukan. Ubah pencarian atau reset filter.
+              Finalis tidak ditemukan. Ubah pencarian atau gunakan Reset filter
+              &amp; urutan.
             </p>
           ) : (
             <DataTable
               rows={filtered}
-              resetKey={`${query}:${category}:${district}:${drawStatus}`}
+              resetKey={JSON.stringify([
+                query,
+                category,
+                district,
+                drawStatus,
+                gender,
+                sort,
+              ])}
               paginationDisabled={busy}
               className="table final-people-table"
               renderRow={(p) => (
@@ -606,11 +660,65 @@ export default function FinalWorkspace({
                     "Sesi finalis",
                     "Hasil final",
                     ...(admin ? ["Tindakan"] : []),
-                  ].map((h) => (
-                    <TableCell component="th" scope="col" key={h}>
-                      {h}
-                    </TableCell>
-                  ))}
+                  ].map((h) => {
+                    const key =
+                      h === "Nama"
+                        ? "name"
+                        : h === "No. peserta"
+                          ? "number"
+                          : h === "Sesi finalis"
+                            ? "session"
+                            : null;
+                    const direction =
+                      key && sort === `${key}-asc`
+                        ? "ascending"
+                        : key && sort === `${key}-desc`
+                          ? "descending"
+                          : "none";
+                    return (
+                      <TableCell
+                        component="th"
+                        scope="col"
+                        key={h}
+                        aria-sort={key ? direction : undefined}
+                      >
+                        {key ? (
+                          <button
+                            type="button"
+                            className="table-sort"
+                            title={`Urutkan berdasarkan ${h.toLowerCase()}`}
+                            disabled={busy}
+                            onClick={() =>
+                              setSort(
+                                `${key}-${sort === `${key}-asc` ? "desc" : "asc"}` as FinalPeopleSort,
+                              )
+                            }
+                          >
+                            {h}{" "}
+                            <span aria-hidden="true">
+                              <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                              >
+                                {direction !== "descending" ? (
+                                  <path d="m4 6 4-4 4 4" />
+                                ) : null}
+                                {direction !== "ascending" ? (
+                                  <path d="m4 10 4 4 4-4" />
+                                ) : null}
+                              </svg>
+                            </span>
+                          </button>
+                        ) : (
+                          h
+                        )}
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
               </TableHead>
             </DataTable>

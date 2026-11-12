@@ -29,6 +29,11 @@ Data peserta tetap memakai
 - Daftar peserta → Final → Pilih finalis → pilih cabang dan peserta → periksa →
   Tetapkan finalis. Identitas dan nomor peserta tetap mengikuti data terdaftar.
 - Atur sesi finalis (manual/jadwal WITA), terpisah dari sesi Penyisihan.
+- Daftar finalis mendukung pencarian nama/nomor/kecamatan, filter cabang,
+  kecamatan, Putra/Putri, status undian dan sesi terjadwal. Klik judul kolom
+  Nama, No. peserta atau Sesi finalis untuk mengubah urutan. Pilihan Urutkan
+  juga tersedia pada ponsel. Reset filter & urutan mengembalikan seluruh daftar
+  ke urutan nama A–Z. Pencarian dan urutan diterapkan sebelum pagination.
 - Bank maqro → Final → Tambah maqro final. Paket lama tidak disalin otomatis.
 - Cabang & sesi → Final → Buka undian final. Konfirmasi menampilkan finalis dan
   paket tersedia. Paket yang belum cukup diberi peringatan; paket tidak dipakai
@@ -69,7 +74,7 @@ Jangan mengulangi migrasi yang sudah tercatat berhasil.
 Verifikasi lokal tidak membuktikan konfigurasi Realtime atau deployment hosted.
 Tidak ada akun, paket, hasil, atau migrasi production yang diubah saat pengujian.
 
-Hasil pemeriksaan 12 November 2026: 16 unit test lulus; 18 kelompok workflow
+Hasil pemeriksaan 12 November 2026: 19 unit test lulus; 18 kelompok workflow
 lulus termasuk browser → API fixture → PostgreSQL → bukti → reload. Migrasi
 diuji pada tabel Penyisihan yang sudah berisi data, dengan snapshot tabel dan
 definisi RPC lama tetap sama. Browser juga menguji fallback tanpa migrasi Final.

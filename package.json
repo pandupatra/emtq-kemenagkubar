@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test:unit": "node --experimental-strip-types --test scripts/competition-codes.test.mjs scripts/dashboard.test.mjs scripts/session-schedule.test.mjs scripts/workspace-sync.test.mjs scripts/participant-export.test.mjs",
+    "test:unit": "node --experimental-strip-types --test scripts/competition-codes.test.mjs scripts/dashboard.test.mjs scripts/session-schedule.test.mjs scripts/workspace-sync.test.mjs scripts/participant-export.test.mjs scripts/final-table.test.mjs",
     "test:workflows": "node scripts/workflows.test.mjs",
     "test:browser": "node scripts/workflows.test.mjs --browser",
     "seed": "node --env-file=.env.local scripts/seed.mjs",

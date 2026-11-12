@@ -500,6 +500,71 @@ async function browserFlow(page, cfg) {
     .click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   await captureFinal("people");
+  const resetFinalFilters = page.getByRole("button", {
+    name: "Reset filter & urutan",
+    exact: true,
+  });
+  if (!(await resetFinalFilters.isDisabled()))
+    throw Error("Final default filter reset should be disabled");
+  await page
+    .getByRole("columnheader", { name: "Nama", exact: true })
+    .getByRole("button")
+    .click();
+  if (
+    (await page
+      .getByRole("columnheader", { name: "Nama", exact: true })
+      .getAttribute("aria-sort")) !== "descending"
+  )
+    throw Error("Final name header sort missing");
+  const descendingFinalNames = await page
+    .locator('.final-people-table tbody td[data-label="Nama"] strong')
+    .allTextContents();
+  if (descendingFinalNames[0] !== "QA UI Participant")
+    throw Error("Final name sorting did not reorder rows");
+  await page
+    .getByRole("columnheader", { name: "No. peserta", exact: true })
+    .getByRole("button")
+    .click();
+  if ((await page.locator("#final-sort").inputValue()) !== "number-asc")
+    throw Error("Final number header and dropdown disagree");
+  await page
+    .getByRole("columnheader", { name: "Sesi finalis", exact: true })
+    .getByRole("button")
+    .click();
+  if ((await page.locator("#final-sort").inputValue()) !== "session-asc")
+    throw Error("Final session sort missing");
+  await page.locator("#final-gender").selectOption("Putri");
+  if (await page.locator(".final-people-table").count())
+    throw Error("Final gender filter did not narrow results");
+  await resetFinalFilters.click();
+  await page.locator("#final-draw-status").selectOption("scheduled");
+  if (await page.locator(".final-people-table").count())
+    throw Error("Final scheduled filter includes manual sessions");
+  await resetFinalFilters.click();
+  await page.locator("#final-category").selectOption(cfg.category);
+  await page.locator("#final-gender").selectOption("Putra");
+  await page.locator("#final-draw-status").selectOption("not-drawn");
+  if ((await page.locator(".final-people-table tbody tr").count()) !== 1)
+    throw Error("Combined Final filters failed");
+  await resetFinalFilters.click();
+  await page.setViewportSize({ width: 360, height: 1000 });
+  await page.locator("#final-sort").selectOption("name-desc");
+  if (
+    (
+      await page
+        .locator('.final-people-table tbody td[data-label="Nama"] strong')
+        .allTextContents()
+    )[0] !== "QA UI Participant"
+  )
+    throw Error("Mobile Final sorting failed");
+  await captureFinal("filters-sorting");
+  await resetFinalFilters.click();
+  if (
+    (await page.locator("#final-sort").inputValue()) !== "name-asc" ||
+    (await page.locator(".final-people-table tbody tr").count()) !== 4
+  )
+    throw Error("Final reset did not restore rows and sorting");
+
   await page
     .getByRole("button", { name: "Ringkasan kerja", exact: true })
     .click();
@@ -713,7 +778,9 @@ async function browserFlow(page, cfg) {
       .isDisabled())
   )
     throw Error("Bulk-delete button remains enabled for empty history");
-  await page.getByRole("button", { name: "Reset filter", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Reset filter & urutan", exact: true })
+    .click();
   if ((await page.locator(".final-people-table tbody tr").count()) !== 4)
     throw Error("Bulk history deletion removed finalists");
   await page.reload();
