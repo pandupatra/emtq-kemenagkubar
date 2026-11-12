@@ -49,7 +49,15 @@ try {
     .readdirSync("supabase/migrations")
     .filter((f) => f.endsWith(".sql"))
     .sort()) {
-    await db.query(fs.readFileSync(`supabase/migrations/${file}`, "utf8"));
+    const sql = fs.readFileSync(`supabase/migrations/${file}`, "utf8");
+    if (file === "20261112014552_final_round.sql") {
+      const { verifyFinalUpgrade } =
+        await import("./final-round-workflows.mjs");
+      await verifyFinalUpgrade(db, sql);
+      pass(
+        "Final migration preserves populated preliminary tables and the existing draw RPC",
+      );
+    } else await db.query(sql);
   }
   pass("all migrations apply to a clean database");
   const admin = randomUUID(),
@@ -426,6 +434,8 @@ try {
   pass(
     "queued draw is rejected when its schedule expires while waiting for a lock",
   );
+  const { default: verifyFinal } = await import("./final-round-workflows.mjs");
+  await verifyFinal({ db, fresh, admin, district, other, pass });
   if (process.argv.includes("--browser")) {
     const { default: verifyBrowser } = await import("./browser-workflows.mjs");
     await verifyBrowser({ connection, database, admin, district, db });

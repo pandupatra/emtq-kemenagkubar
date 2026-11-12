@@ -19,7 +19,9 @@ export default function DrawPicker({
   busy,
   onSelect,
   onView,
+  round = "Penyisihan",
 }: {
+  round?: "Penyisihan" | "Final";
   people: Person[];
   sessions: Session[];
   categories: Category[];
@@ -272,9 +274,11 @@ export default function DrawPicker({
                         className="btn"
                         disabled={busy}
                         onClick={() => onView(result)}
-                        aria-label={`Lihat bukti ${person.name}, ${category(rowSession.category_id)}`}
+                        aria-label={`Lihat ${round === "Final" ? "hasil final" : "bukti"} ${person.name}, ${category(rowSession.category_id)}`}
                       >
-                        Lihat bukti
+                        {round === "Final"
+                          ? "Lihat hasil final"
+                          : "Lihat bukti"}
                       </button>
                     ) : (
                       <button
@@ -285,9 +289,9 @@ export default function DrawPicker({
                           busy
                         }
                         onClick={() => onSelect(person, rowSession)}
-                        aria-label={`Undi maqro ${person.name}, ${category(rowSession.category_id)}`}
+                        aria-label={`Undi maqro ${round === "Final" ? "final " : ""}${person.name}, ${category(rowSession.category_id)}`}
                       >
-                        Undi maqro
+                        {round === "Final" ? "Undi maqro final" : "Undi maqro"}
                       </button>
                     )}
                   </TableCell>

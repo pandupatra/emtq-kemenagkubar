@@ -41,6 +41,10 @@ export default async function verifyBrowser({
     "packages",
     "results",
     "logs",
+    "final_participants",
+    "final_sessions",
+    "final_packages",
+    "final_results",
   ]);
   const server = createServer(async (req, res) => {
     const client = await pool.connect();
@@ -60,7 +64,14 @@ export default async function verifyBrowser({
         for await (const chunk of req) body += chunk;
         const args = JSON.parse(body),
           rpc = url.pathname.split("/").at(-1);
-        if (rpc === "maqro_action")
+        if (rpc === "maqro_final_action")
+          data = (
+            await client.query(
+              "select public.maqro_final_action($1,$2) result",
+              [args.action, args.payload],
+            )
+          ).rows[0].result;
+        else if (rpc === "maqro_action")
           data = (
             await client.query("select public.maqro_action($1,$2) result", [
               args.action,
@@ -183,6 +194,7 @@ export default async function verifyBrowser({
 
 async function browserFlow(page, cfg) {
   let role = "admin";
+  let finalMissing = false;
   const errors = [],
     writes = [],
     requests = [];
@@ -237,6 +249,11 @@ async function browserFlow(page, cfg) {
   await page.route("**/rest/v1/**", async (route) => {
     const request = route.request(),
       url = new URL(request.url());
+    if (finalMissing && url.pathname.includes("/final_"))
+      return route.fulfill({
+        status: 404,
+        json: { code: "PGRST205", message: "Final migration not applied" },
+      });
     if (request.method() === "POST") writes.push(request.postDataJSON());
     const response = await page.request.fetch(
       cfg.bridge + url.pathname + url.search,
@@ -401,15 +418,13 @@ async function browserFlow(page, cfg) {
     .getByRole("button", { name: "Atur sesi QA UI Created", exact: true })
     .waitFor();
   const downloadPromise = page.waitForEvent("download");
-  await page
-    .getByRole("button", { name: "Ekspor hasil CSV", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Export Excel", exact: true }).click();
   const download = await downloadPromise;
-  let csv = "";
+  const chunks = [];
   for await (const chunk of await download.createReadStream())
-    csv += chunk.toString();
-  if (!csv.includes("QA UI Participant") || !csv.includes("QA UI Al-"))
-    throw Error("CSV omitted saved draw");
+    chunks.push(chunk);
+  if (Buffer.concat(chunks).subarray(0, 2).toString() !== "PK")
+    throw Error("Invalid XLSX export");
   for (const name of [
     "Cabang & sesi",
     "Bank maqro",
@@ -435,6 +450,160 @@ async function browserFlow(page, cfg) {
       fullPage: true,
     });
   }
+
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const captureFinal = async (name) => {
+    for (const width of [360, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      if (
+        await page.evaluate(
+          () => document.documentElement.scrollWidth > innerWidth,
+        )
+      )
+        throw Error(name + " overflow " + width);
+      await page.screenshot({
+        path: "output/playwright/final-" + name + "-" + width + ".png",
+        fullPage: true,
+      });
+    }
+  };
+  await page.getByRole("button", { name: "Final", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Pilih finalis", exact: true })
+    .click();
+  await page.getByLabel("Cabang *", { exact: true }).selectOption(cfg.category);
+  await page.getByLabel("Cari peserta terdaftar").fill("QA UI Participant");
+  await page
+    .getByRole("checkbox", { name: "Pilih QA UI Participant", exact: true })
+    .check();
+  await page
+    .getByRole("button", { name: "Periksa 1 finalis terpilih", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Tetapkan finalis", exact: true })
+    .click();
+  await page.getByRole("dialog").waitFor({ state: "hidden" });
+  await page
+    .getByRole("button", { name: "Atur sesi QA UI Participant", exact: true })
+    .click();
+  await captureFinal("schedule-dialog");
+  await page.getByLabel("Status sesi", { exact: true }).selectOption("true");
+  await page
+    .getByRole("button", { name: "Simpan pengaturan", exact: true })
+    .click();
+  await page.getByRole("dialog").waitFor({ state: "hidden" });
+  await captureFinal("people");
+  await page.getByRole("button", { name: "Bank maqro", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Tambah maqro final", exact: true })
+    .click();
+  await page.getByLabel("Cabang *", { exact: true }).selectOption(cfg.category);
+  await page
+    .getByLabel("Surah / materi *", { exact: true })
+    .fill("QA Final Al-Kahf");
+  await page
+    .getByLabel("Ayat / rentang materi *", { exact: true })
+    .fill("1-10");
+  await page
+    .getByRole("button", { name: "Simpan maqro final", exact: true })
+    .click();
+  await page.getByRole("dialog").waitFor({ state: "hidden" });
+  await page
+    .getByRole("button", { name: "Cabang & sesi", exact: true })
+    .click();
+  await page.locator(".final-sessions-table").waitFor();
+  await captureFinal("sessions");
+  await page
+    .locator(".final-sessions-table tr", { hasText: "QA UI Tartil" })
+    .getByRole("button", { name: "Buka undian final", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Buka undian final", exact: true })
+    .click();
+  await page.getByRole("dialog").waitFor({ state: "hidden" });
+  await page.getByRole("button", { name: "Keluar", exact: true }).click();
+  await login("melak");
+  await page.getByRole("button", { name: "Undian maqro", exact: true }).click();
+  await page.getByRole("button", { name: "Final", exact: true }).click();
+  await page
+    .getByRole("button", {
+      name: "Undi maqro final QA UI Participant, QA UI Tartil",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("heading", { name: "Periksa data undian final", exact: true })
+    .waitFor();
+  await page
+    .getByRole("button", { name: "Undi maqro final", exact: true })
+    .click();
+  await page.locator(".receipt").waitFor();
+  const finalReceipt = await page.locator(".receipt").innerText();
+  if (
+    !finalReceipt.includes("Final") ||
+    !finalReceipt.includes("QA Final Al-Kahf")
+  )
+    throw Error("Final receipt missing");
+  for (const width of [360, 768, 1440]) {
+    await page.setViewportSize({ width, height: 1000 });
+    if (
+      await page.evaluate(
+        () => document.documentElement.scrollWidth > innerWidth,
+      )
+    )
+      throw Error("Final receipt overflow " + width);
+    await page.screenshot({
+      path: "output/playwright/final-receipt-" + width + ".png",
+      fullPage: true,
+    });
+  }
+  await page
+    .getByRole("button", { name: "Kembali ke finalis", exact: true })
+    .click();
+  await page
+    .getByRole("button", {
+      name: "Lihat hasil final QA UI Participant, QA UI Tartil",
+      exact: true,
+    })
+    .waitFor();
+  await captureFinal("draw-picker");
+  await page.getByRole("button", { name: "Penyisihan", exact: true }).click();
+  await page
+    .getByLabel("Cari peserta", { exact: true })
+    .fill("QA UI Participant");
+  await page
+    .getByRole("button", {
+      name: "Lihat bukti QA UI Participant, QA UI Tartil",
+      exact: true,
+    })
+    .click();
+  await page.locator(".receipt").waitFor();
+  if ((await page.locator(".receipt").innerText()) !== receipt)
+    throw Error("Final affected preliminary receipt");
+  await page.reload();
+  await page.getByRole("button", { name: "Undian maqro", exact: true }).click();
+  await page.getByRole("button", { name: "Final", exact: true }).click();
+  await page
+    .getByRole("button", {
+      name: "Lihat hasil final QA UI Participant, QA UI Tartil",
+      exact: true,
+    })
+    .click();
+  if ((await page.locator(".receipt").innerText()) !== finalReceipt)
+    throw Error("Final receipt changed on reload");
+
+  finalMissing = true;
+  await page.reload();
+  await page.getByRole("button", { name: "Undian maqro", exact: true }).click();
+  await page.getByRole("button", { name: "Final", exact: true }).click();
+  await page
+    .getByRole("heading", { name: "Babak Final belum diaktifkan", exact: true })
+    .waitFor();
+  await page.getByRole("button", { name: "Penyisihan", exact: true }).click();
+  await page
+    .getByRole("heading", { name: "Pilih peserta undian", exact: true })
+    .waitFor();
   if (errors.length) throw Error(errors.join(";"));
   return {
     browserWorkflows: "PASS",

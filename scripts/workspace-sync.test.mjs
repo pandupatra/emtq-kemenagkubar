@@ -20,7 +20,7 @@ const source = stripTypeScriptTypes(
     "exports.default = function useWorkspaceSync",
   );
 
-function fixture() {
+function fixture(final = false) {
   let effect, handler, status, cleanup;
   let blocked = false;
   let now = 0,
@@ -85,6 +85,7 @@ function fixture() {
       if (fail) throw Error("offline");
       batches.push(Array.from(tables));
     },
+    final,
   );
   cleanup = effect();
   return {
@@ -103,7 +104,7 @@ function fixture() {
     },
     cleanup: () => {
       cleanup();
-      assert.equal(removed, true);
+      assert.equal(removed, !final);
     },
     async tick(ms) {
       now += ms;
@@ -117,6 +118,24 @@ function fixture() {
     },
   };
 }
+
+test("Final shares existing notifications without opening or removing the preliminary channel", async () => {
+  const f = fixture(true);
+  await f.tick(1500);
+  assert.deepEqual(f.batches, [
+    ["final_participants", "final_sessions", "final_results"],
+  ]);
+  f.block(true);
+  f.listeners.get("maqro-final-changed")();
+  await f.tick(1500);
+  assert.equal(f.batches.length, 1);
+  f.block(false);
+  await f.tick(1500);
+  assert.equal(f.batches.length, 2);
+  f.cleanup();
+  assert.equal(f.listeners.has("maqro-final-changed"), false);
+  assert.equal(f.timers.size, 0);
+});
 
 test("Coalesce bursts and refresh only changed, permitted tables", async () => {
   const f = fixture();

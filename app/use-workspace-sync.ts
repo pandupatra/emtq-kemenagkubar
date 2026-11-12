@@ -5,27 +5,44 @@ import { supabase } from "@/lib/supabase";
 import type { Data } from "@/lib/types";
 
 export type SyncTable =
-  "categories" | "people" | "sessions" | "results" | "profiles" | "packages";
+  | "categories"
+  | "people"
+  | "sessions"
+  | "results"
+  | "profiles"
+  | "packages"
+  | "final_participants"
+  | "final_sessions"
+  | "final_packages"
+  | "final_results";
 
 export default function useWorkspaceSync(
   profile: Data["profile"] | undefined,
   blocked: () => boolean,
   refresh: (tables: SyncTable[], valid: () => boolean) => Promise<void>,
+  final = false,
 ) {
   const latest = useRef({ blocked, refresh });
   latest.current = { blocked, refresh };
   useEffect(() => {
     if (!profile) return;
     const db = supabase();
-    const tables: SyncTable[] = [
-      "categories",
-      "people",
-      "sessions",
-      "results",
-      ...(profile.role === "admin"
-        ? (["profiles", "packages"] as SyncTable[])
-        : []),
-    ];
+    const tables: SyncTable[] = final
+      ? [
+          "final_participants",
+          "final_sessions",
+          "final_results",
+          ...(profile.role === "admin" ? ["final_packages" as const] : []),
+        ]
+      : [
+          "categories",
+          "people",
+          "sessions",
+          "results",
+          ...(profile.role === "admin"
+            ? (["profiles", "packages"] as SyncTable[])
+            : []),
+        ];
     const pending = new Set<SyncTable>();
     let disposed = false,
       running = false,
@@ -70,27 +87,33 @@ export default function useWorkspaceSync(
       tables.forEach((t) => pending.add(t));
       schedule();
     };
-    const channel = db
-      .channel(
-        profile.role === "admin"
-          ? "workspace:admin"
-          : `workspace:district:${profile.district}`,
-        { config: { private: true } },
-      )
-      .on("broadcast", { event: "changed" }, ({ payload }) => {
-        if (payload.table === "profiles") {
-          reconcile();
-          return;
-        }
-        if (tables.includes(payload.table)) {
-          pending.add(payload.table);
-          schedule();
-        }
-      })
-      .subscribe((status) => {
-        connected = status === "SUBSCRIBED";
-        if (connected) reconcile();
-      });
+    const channel = final
+      ? undefined
+      : db
+          .channel(
+            profile.role === "admin"
+              ? "workspace:admin"
+              : `workspace:district:${profile.district}`,
+            { config: { private: true } },
+          )
+          .on("broadcast", { event: "changed" }, ({ payload }) => {
+            if (String(payload.table).startsWith("final_")) {
+              window.dispatchEvent(new Event("maqro-final-changed"));
+              return;
+            }
+            if (payload.table === "profiles") {
+              reconcile();
+              return;
+            }
+            if (tables.includes(payload.table)) {
+              pending.add(payload.table);
+              schedule();
+            }
+          })
+          .subscribe((status) => {
+            connected = status === "SUBSCRIBED";
+            if (connected) reconcile();
+          });
     const poll = () => {
       fallback = setTimeout(
         () => {
@@ -101,6 +124,10 @@ export default function useWorkspaceSync(
       );
     };
     poll();
+    if (final) {
+      window.addEventListener("maqro-final-changed", reconcile);
+      reconcile();
+    }
     // Reconcile missed events after returning from sleep, a hidden tab, or offline.
     const resume = () => {
       if (visible()) reconcile();
@@ -113,7 +140,8 @@ export default function useWorkspaceSync(
       clearTimeout(fallback);
       document.removeEventListener("visibilitychange", resume);
       window.removeEventListener("online", resume);
-      void db.removeChannel(channel);
+      if (final) window.removeEventListener("maqro-final-changed", reconcile);
+      if (channel) void db.removeChannel(channel);
     };
-  }, [profile?.id, profile?.role, profile?.district]);
+  }, [profile?.id, profile?.role, profile?.district, final]);
 }

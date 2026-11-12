@@ -9,7 +9,7 @@ const drawTime = (value: string) =>
     timeZone: "Asia/Makassar",
   }).format(new Date(value)) + " WITA";
 
-export function createParticipantWorkbook(data: Data) {
+export function createParticipantWorkbook(data: Data, round?: "Final") {
   const workbook = new ExcelJS.Workbook();
   const people = new Map(data.people.map((person) => [person.id, person]));
   const categories = new Map(
@@ -30,6 +30,7 @@ export function createParticipantWorkbook(data: Data) {
     { header: "Surah / materi", width: 40 },
     { header: "Ayat / rentang materi", width: 32 },
     { header: "Waktu undian (WITA)", width: 30 },
+    ...(round ? [{ header: "Babak", width: 18 }] : []),
   ];
   for (const person of data.people) {
     const names = person.entries.map((id) => categories.get(id) ?? id);
@@ -54,6 +55,7 @@ export function createParticipantWorkbook(data: Data) {
         result?.surah ?? "",
         result?.verses ?? "",
         result ? drawTime(result.created_at) : "",
+        ...(round ? [round] : []),
       ]);
     }
   }
@@ -83,6 +85,6 @@ export function createParticipantWorkbook(data: Data) {
   return workbook;
 }
 
-export async function participantWorkbookBuffer(data: Data) {
-  return createParticipantWorkbook(data).xlsx.writeBuffer();
+export async function participantWorkbookBuffer(data: Data, round?: "Final") {
+  return createParticipantWorkbook(data, round).xlsx.writeBuffer();
 }

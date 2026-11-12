@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { createRequire, stripTypeScriptTypes } from "node:module";
 import { pathToFileURL } from "node:url";
 import ExcelJS from "exceljs";
+import { finalPeople, finalExportData } from "../lib/final-round.ts";
 
 const require = createRequire(import.meta.url);
 const source = await readFile(
@@ -83,4 +84,55 @@ test("Empty results still produce a workbook with participants and headers", asy
   await workbook.xlsx.load(buffer);
   assert.equal(workbook.worksheets.length, 1);
   assert.equal(workbook.getWorksheet("Peserta").rowCount, 1);
+});
+
+test("Final data uses its own schedule and exports only finalists with a round label", async () => {
+  const person = {
+    id: "p1",
+    name: "Finalis",
+    district: "Melak",
+    gender: "Putra",
+    birth: "2000-01-01",
+    participant_number: "001",
+    entries: ["c1"],
+    session_open: true,
+    session_starts_at: "2030-01-01T00:00:00Z",
+    session_ends_at: "2030-01-01T01:00:00Z",
+  };
+  const finalist = {
+    id: "p1",
+    category_id: "c1",
+    session_open: false,
+    session_starts_at: null,
+    session_ends_at: null,
+  };
+  const base = {
+    people: [person, { ...person, id: "p2", name: "Bukan finalis" }],
+    categories: [{ id: "c1", name: "Tartil" }],
+    results: [{ person_id: "p1", surah: "Penyisihan" }],
+  };
+  const final = {
+    final_participants: [finalist],
+    final_sessions: [],
+    final_packages: [],
+    final_results: [],
+  };
+  assert.equal(
+    finalPeople(base.people, final.final_participants)[0].session_open,
+    false,
+  );
+  assert.equal(
+    finalPeople(base.people, final.final_participants)[0].session_starts_at,
+    null,
+  );
+  assert.equal(person.session_open, true);
+  const data = finalExportData(base, final);
+  const book = new ExcelJS.Workbook();
+  await book.xlsx.load(await participantWorkbookBuffer(data, "Final"));
+  const sheet = book.getWorksheet("Peserta");
+  assert.equal(sheet.rowCount, 2);
+  assert.equal(sheet.getCell("K1").value, "Babak");
+  assert.equal(sheet.getCell("K2").value, "Final");
+  assert.equal(sheet.getCell("G2").value, "Belum diundi");
+  assert.ok(!sheet.getCell("H2").value);
 });

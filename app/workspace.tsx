@@ -1,4 +1,7 @@
 "use client";
+import dynamic from "next/dynamic";
+const FinalWorkspace = dynamic(() => import("./final-workspace"));
+import { Modal, Receipt } from "./draw-shared";
 import ActivityLog from "./activity-log";
 import useWorkspaceSync from "./use-workspace-sync";
 import useSessionClock from "./use-session-clock";
@@ -227,110 +230,8 @@ function ParticipantEntryFields({
   );
 }
 
-function Modal({
-  title,
-  children,
-  close,
-  busy,
-  className,
-}: {
-  title: string;
-  children: ReactNode;
-  close: () => void;
-  busy: boolean;
-  className?: string;
-}) {
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    const previous = document.activeElement as HTMLElement | null;
-    el?.showModal();
-    return () => {
-      el?.close();
-      previous?.focus();
-    };
-  }, []);
-  return (
-    <dialog
-      ref={ref}
-      className={className}
-      aria-labelledby="dialog-title"
-      aria-busy={busy}
-      onCancel={(e) => {
-        e.preventDefault();
-        if (!busy) close();
-      }}
-    >
-      <div className="dialog-head">
-        <h2 id="dialog-title">{title}</h2>
-        <button
-          className="btn icon-btn"
-          onClick={close}
-          disabled={busy}
-          aria-label="Tutup dialog"
-          title="Tutup dialog"
-        >
-          <ActionIcon name="close" />
-        </button>
-      </div>
-      {children}
-    </dialog>
-  );
-}
-
-function Receipt({ result: r, person }: { result: Result; person?: Person }) {
-  return (
-    <article className="receipt">
-      <div className="receipt-head">
-        <div>
-          <div className="wordmark">e-Maqro LPTQ Kubar</div>
-          <h2>Bukti hasil undian</h2>
-          <p>MTQ Kabupaten Kutai Barat</p>
-        </div>
-        <Badge>{r.cancelled ? "Dibatalkan" : "Tersimpan"}</Badge>
-      </div>
-      <dl className="review">
-        <div>
-          <dt>Nama peserta</dt>
-          <dd>{r.name}</dd>
-        </div>
-        <div>
-          <dt>No. peserta</dt>
-          <dd>{participantNumber(person?.participant_number, r.category)}</dd>
-        </div>
-        <div>
-          <dt>Kafilah</dt>
-          <dd>
-            {r.district} · {r.gender}
-          </dd>
-        </div>
-        <div>
-          <dt>Cabang</dt>
-          <dd>{r.category}</dd>
-        </div>
-        <div>
-          <dt>Waktu undian</dt>
-          <dd>{date(r.created_at)}</dd>
-        </div>
-      </dl>
-      <div className="maqro-result">
-        <p>Hasil maqro</p>
-        <h2>{r.surah}</h2>
-        <p>Ayat / rentang materi: {r.verses}</p>
-      </div>
-      {r.cancelled ? (
-        <div className="notice warn">Alasan pembatalan: {r.reason}</div>
-      ) : null}
-      <p className="receipt-foot">
-        Nomor bukti: {r.id}
-        <br />
-        Hasil ditetapkan dan disimpan oleh sistem saat undian dilakukan.
-      </p>
-    </article>
-  );
-}
-
 export default function Workspace({ configured }: { configured: boolean }) {
+  const [round, setRound] = useState<"Penyisihan" | "Final">("Penyisihan");
   const [exporting, setExporting] = useState(false);
   const [rawData, setData] = useState<Data | null>(null),
     [loading, setLoading] = useState(configured),
@@ -486,6 +387,14 @@ export default function Workspace({ configured }: { configured: boolean }) {
         }
       : rawData;
   const admin = data?.profile.role === "admin";
+  const roundPage = [
+    "people",
+    "sessions",
+    "bank",
+    "draw",
+    "dashboard",
+  ].includes(page);
+  const isFinal = roundPage && round === "Final";
   function changeImpersonation(id: string | null) {
     if (mutation.current) return;
     setImpersonatedId(id);
@@ -621,6 +530,8 @@ export default function Workspace({ configured }: { configured: boolean }) {
         setSelection(null);
         setDrawResult(null);
         setPage("dashboard");
+        setRound("Penyisihan");
+        setFeedback("");
         setLoading(false);
       }
     });
@@ -1422,7 +1333,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
                 <h1>{titles[page]}</h1>
                 {descriptions[page] ? <p>{descriptions[page]}</p> : null}
               </div>
-              <div className="actions">
+              <div className="actions" hidden={isFinal}>
                 {page === "people" && admin ? (
                   <button
                     className="btn danger"
@@ -1492,792 +1403,875 @@ export default function Workspace({ configured }: { configured: boolean }) {
                 </button>
               </div>
             </div>
-            {!modal ? errorBox : null}
-            <div aria-busy={loading}>
-              {loading && drawStep !== 3 ? (
-                <WorkspaceSkeleton page={drawStep === 4 ? "receipt" : page} />
-              ) : (
-                <>
-                  {page === "dashboard" && admin ? (
-                    <WorkSummary
-                      data={data}
-                      openPeople={({ district = "", status = "" }) => {
-                        resetPeopleFilters();
-                        setPeopleDistrict(district);
-                        setPeopleDrawStatus(status);
-                        go("people");
-                      }}
+            {roundPage ? (
+              <div
+                className="round-switch"
+                role="group"
+                aria-label="Babak perlombaan"
+              >
+                {(["Penyisihan", "Final"] as const).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`btn ${round === value ? "primary" : ""}`}
+                    aria-pressed={round === value}
+                    disabled={busy}
+                    onClick={() => {
+                      setRound(value);
+                      setFeedback("");
+                      setSelection(null);
+                      setDrawResult(null);
+                      setDrawStep(1);
+                      setSelectedPeople([]);
+                      setModal(null);
+                      setError("");
+                    }}
+                  >
+                    {value}
+                  </button>
+                ))}
+                <span>Babak {round}</span>
+              </div>
+            ) : null}
+            {isFinal ? (
+              <FinalWorkspace
+                key={`${data.profile.id}:${impersonatedId || ""}`}
+                base={data}
+                page={page}
+                impersonatedId={targetProfile?.id}
+                onBusy={(value) => {
+                  mutation.current = value;
+                  setBusy(value);
+                }}
+              />
+            ) : (
+              <>
+                {!modal ? errorBox : null}
+                <div aria-busy={loading}>
+                  {loading && drawStep !== 3 ? (
+                    <WorkspaceSkeleton
+                      page={drawStep === 4 ? "receipt" : page}
                     />
-                  ) : null}
-                  {page === "people" ? (
+                  ) : (
                     <>
-                      <div className="filters people-filters">
-                        <div className="field">
-                          <label htmlFor="search">
-                            Cari peserta atau kecamatan
-                          </label>
-                          <input
-                            id="search"
-                            type="search"
-                            value={query}
-                            onChange={(e) => setQuery(e.target.value)}
-                            placeholder="Nama, no. peserta, atau kecamatan"
-                          />
-                        </div>
-                        {admin ? (
-                          <div className="field">
-                            <label htmlFor="people-district">Kecamatan</label>
-                            <select
-                              id="people-district"
-                              value={peopleDistrict}
-                              onChange={(e) =>
-                                setPeopleDistrict(e.target.value)
-                              }
-                            >
-                              <option value="">Semua kecamatan</option>
-                              {districts.map((district) => (
-                                <option key={district} value={district}>
-                                  {district}
+                      {page === "dashboard" && admin ? (
+                        <WorkSummary
+                          data={data}
+                          openPeople={({ district = "", status = "" }) => {
+                            resetPeopleFilters();
+                            setPeopleDistrict(district);
+                            setPeopleDrawStatus(status);
+                            go("people");
+                          }}
+                        />
+                      ) : null}
+                      {page === "people" ? (
+                        <>
+                          <div className="filters people-filters">
+                            <div className="field">
+                              <label htmlFor="search">
+                                Cari peserta atau kecamatan
+                              </label>
+                              <input
+                                id="search"
+                                type="search"
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                                placeholder="Nama, no. peserta, atau kecamatan"
+                              />
+                            </div>
+                            {admin ? (
+                              <div className="field">
+                                <label htmlFor="people-district">
+                                  Kecamatan
+                                </label>
+                                <select
+                                  id="people-district"
+                                  value={peopleDistrict}
+                                  onChange={(e) =>
+                                    setPeopleDistrict(e.target.value)
+                                  }
+                                >
+                                  <option value="">Semua kecamatan</option>
+                                  {districts.map((district) => (
+                                    <option key={district} value={district}>
+                                      {district}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            ) : null}
+                            <div className="field">
+                              <label htmlFor="people-category">Cabang</label>
+                              <select
+                                id="people-category"
+                                value={peopleCategory}
+                                onChange={(e) =>
+                                  setPeopleCategory(e.target.value)
+                                }
+                              >
+                                <option value="">Semua cabang</option>
+                                {data.categories.map((c) => (
+                                  <option key={c.id} value={c.id}>
+                                    {c.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="field">
+                              <label htmlFor="people-gender">
+                                Putra / Putri
+                              </label>
+                              <select
+                                id="people-gender"
+                                value={peopleGender}
+                                onChange={(e) =>
+                                  setPeopleGender(e.target.value)
+                                }
+                              >
+                                <option value="">Semua peserta</option>
+                                <option value="Putra">Putra</option>
+                                <option value="Putri">Putri</option>
+                              </select>
+                            </div>
+                            <div className="field">
+                              <label htmlFor="people-draw-status">
+                                Status undian
+                              </label>
+                              <select
+                                id="people-draw-status"
+                                value={peopleDrawStatus}
+                                onChange={(e) =>
+                                  setPeopleDrawStatus(e.target.value)
+                                }
+                                aria-describedby="people-draw-hint"
+                              >
+                                <option value="">Semua status</option>
+                                <option value="drawn">Sudah mengundi</option>
+                                <option value="not-drawn">
+                                  Belum mengundi
                                 </option>
-                              ))}
-                            </select>
+                                <option value="scheduled">
+                                  Sesi terjadwal
+                                </option>
+                              </select>
+                            </div>
                           </div>
-                        ) : null}
-                        <div className="field">
-                          <label htmlFor="people-category">Cabang</label>
-                          <select
-                            id="people-category"
-                            value={peopleCategory}
-                            onChange={(e) => setPeopleCategory(e.target.value)}
-                          >
-                            <option value="">Semua cabang</option>
-                            {data.categories.map((c) => (
-                              <option key={c.id} value={c.id}>
-                                {c.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="field">
-                          <label htmlFor="people-gender">Putra / Putri</label>
-                          <select
-                            id="people-gender"
-                            value={peopleGender}
-                            onChange={(e) => setPeopleGender(e.target.value)}
-                          >
-                            <option value="">Semua peserta</option>
-                            <option value="Putra">Putra</option>
-                            <option value="Putri">Putri</option>
-                          </select>
-                        </div>
-                        <div className="field">
-                          <label htmlFor="people-draw-status">
-                            Status undian
-                          </label>
-                          <select
-                            id="people-draw-status"
-                            value={peopleDrawStatus}
-                            onChange={(e) =>
-                              setPeopleDrawStatus(e.target.value)
-                            }
-                            aria-describedby="people-draw-hint"
-                          >
-                            <option value="">Semua status</option>
-                            <option value="drawn">Sudah mengundi</option>
-                            <option value="not-drawn">Belum mengundi</option>
-                            <option value="scheduled">Sesi terjadwal</option>
-                          </select>
-                        </div>
-                      </div>
-                      <div className="people-filter-summary">
-                        <p role="status">
-                          Menampilkan {visiblePeople.length} dari{" "}
-                          {data.people.length} peserta
-                        </p>
-                        <button
-                          type="button"
-                          className="btn"
-                          onClick={resetPeopleFilters}
-                          disabled={!hasPeopleFilters}
-                        >
-                          Reset filter & urutan
-                        </button>
-                      </div>
-                      <p className="hint" id="people-draw-hint">
-                        {peopleCategory
-                          ? "Status undian mengikuti cabang yang dipilih."
-                          : "Sudah mengundi berarti memiliki hasil aktif pada setidaknya satu cabang."}
-                      </p>
-                      <section className="panel data-panel">
-                        {visiblePeople.length ? (
+                          <div className="people-filter-summary">
+                            <p role="status">
+                              Menampilkan {visiblePeople.length} dari{" "}
+                              {data.people.length} peserta
+                            </p>
+                            <button
+                              type="button"
+                              className="btn"
+                              onClick={resetPeopleFilters}
+                              disabled={!hasPeopleFilters}
+                            >
+                              Reset filter & urutan
+                            </button>
+                          </div>
+                          <p className="hint" id="people-draw-hint">
+                            {peopleCategory
+                              ? "Status undian mengikuti cabang yang dipilih."
+                              : "Sudah mengundi berarti memiliki hasil aktif pada setidaknya satu cabang."}
+                          </p>
+                          <section className="panel data-panel">
+                            {visiblePeople.length ? (
+                              <DataTable
+                                rows={visiblePeople}
+                                resetKey={JSON.stringify([
+                                  query,
+                                  peopleDistrict,
+                                  peopleCategory,
+                                  peopleGender,
+                                  peopleDrawStatus,
+                                  peopleSort,
+                                  impersonatedId,
+                                ])}
+                                paginationDisabled={busy}
+                                renderRow={(p) => (
+                                  <TableRow
+                                    key={p.id}
+                                    aria-busy={updating("person", p.id)}
+                                  >
+                                    {admin ? (
+                                      <TableCell data-label="Pilih">
+                                        <input
+                                          type="checkbox"
+                                          aria-label={`Pilih ${p.name}`}
+                                          disabled={busy}
+                                          checked={selectedPeople.includes(
+                                            p.id,
+                                          )}
+                                          onChange={(event) =>
+                                            setSelectedPeople((current) =>
+                                              event.target.checked
+                                                ? [...current, p.id]
+                                                : current.filter(
+                                                    (id) => id !== p.id,
+                                                  ),
+                                            )
+                                          }
+                                        />
+                                      </TableCell>
+                                    ) : null}
+                                    <TableCell data-label="Peserta">
+                                      <strong>{p.name}</strong>
+                                      <small>{p.gender}</small>
+                                      <small>{p.district}</small>
+                                    </TableCell>
+                                    <TableCell data-label="No. peserta">
+                                      {personNumbers(p)}
+                                      <small>
+                                        {p.entries.map(category).join(", ")}
+                                      </small>
+                                    </TableCell>
+                                    <TableCell data-label="Sesi peserta">
+                                      <ParticipantSessionControl
+                                        person={p}
+                                        busy={busy}
+                                        onConfigure={
+                                          admin
+                                            ? () =>
+                                                setModal({
+                                                  kind: "participant-schedule",
+                                                  person: p,
+                                                })
+                                            : undefined
+                                        }
+                                      />
+                                    </TableCell>
+                                    <TableCell data-label="Hasil undian">
+                                      <ParticipantResults
+                                        onDelete={
+                                          admin
+                                            ? (result) =>
+                                                setModal({
+                                                  kind: "delete-history",
+                                                  result,
+                                                })
+                                            : undefined
+                                        }
+                                        results={data.results.filter(
+                                          (r) => r.person_id === p.id,
+                                        )}
+                                        busy={busy}
+                                        onView={(result) =>
+                                          setModal({ kind: "receipt", result })
+                                        }
+                                        onCancel={
+                                          admin
+                                            ? (result) =>
+                                                setModal({
+                                                  kind: "cancel",
+                                                  result,
+                                                })
+                                            : undefined
+                                        }
+                                      />
+                                    </TableCell>
+                                    <TableCell data-label="Tindakan">
+                                      {personActions(p)}
+                                    </TableCell>
+                                  </TableRow>
+                                )}
+                                aria-label="Daftar peserta"
+                                className={`table people-table${admin ? " people-table-admin" : ""}`}
+                              >
+                                {admin ? (
+                                  <caption className="people-table-caption">
+                                    <div className="actions">
+                                      <span role="status">
+                                        {
+                                          visiblePeople.filter((p) =>
+                                            selectedPeople.includes(p.id),
+                                          ).length
+                                        }{" "}
+                                        peserta dipilih
+                                      </span>
+                                      <button
+                                        className="btn"
+                                        disabled={
+                                          busy || !selectedPeople.length
+                                        }
+                                        onClick={() =>
+                                          setModal({
+                                            kind: "participant-schedule",
+                                          })
+                                        }
+                                      >
+                                        Atur sesi terpilih
+                                      </button>
+                                      <button
+                                        className="btn"
+                                        disabled={
+                                          busy || !selectedPeople.length
+                                        }
+                                        onClick={() => setSelectedPeople([])}
+                                      >
+                                        Hapus pilihan
+                                      </button>
+                                    </div>
+                                  </caption>
+                                ) : null}
+                                <TableHead>
+                                  <TableRow>
+                                    {admin ? (
+                                      <TableCell component="th" scope="col">
+                                        <input
+                                          type="checkbox"
+                                          aria-label="Pilih semua peserta sesuai filter, di semua halaman"
+                                          disabled={busy}
+                                          checked={
+                                            visiblePeople.length > 0 &&
+                                            visiblePeople.every((p) =>
+                                              selectedPeople.includes(p.id),
+                                            )
+                                          }
+                                          ref={(element) => {
+                                            if (element)
+                                              element.indeterminate =
+                                                visiblePeople.some((p) =>
+                                                  selectedPeople.includes(p.id),
+                                                ) &&
+                                                !visiblePeople.every((p) =>
+                                                  selectedPeople.includes(p.id),
+                                                );
+                                          }}
+                                          onChange={(event) =>
+                                            setSelectedPeople(
+                                              event.target.checked
+                                                ? visiblePeople.map((p) => p.id)
+                                                : [],
+                                            )
+                                          }
+                                        />
+                                      </TableCell>
+                                    ) : null}
+                                    <TableCell
+                                      component="th"
+                                      scope="col"
+                                      aria-sort={
+                                        peopleSort === "name-asc"
+                                          ? "ascending"
+                                          : peopleSort === "name-desc"
+                                            ? "descending"
+                                            : "none"
+                                      }
+                                    >
+                                      <button
+                                        type="button"
+                                        className="table-sort"
+                                        onClick={() =>
+                                          setPeopleSort(
+                                            peopleSort === "name-asc"
+                                              ? "name-desc"
+                                              : "name-asc",
+                                          )
+                                        }
+                                      >
+                                        Peserta{" "}
+                                        <span aria-hidden="true">
+                                          <svg
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 16 16"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="1.5"
+                                          >
+                                            {peopleSort !== "name-desc" ? (
+                                              <path d="m4 6 4-4 4 4" />
+                                            ) : null}
+                                            {peopleSort !== "name-asc" ? (
+                                              <path d="m4 10 4 4 4-4" />
+                                            ) : null}
+                                          </svg>
+                                        </span>
+                                      </button>
+                                    </TableCell>
+                                    <TableCell
+                                      component="th"
+                                      scope="col"
+                                      aria-sort={
+                                        peopleSort === "number-asc"
+                                          ? "ascending"
+                                          : peopleSort === "number-desc"
+                                            ? "descending"
+                                            : "none"
+                                      }
+                                    >
+                                      <button
+                                        type="button"
+                                        className="table-sort"
+                                        onClick={() =>
+                                          setPeopleSort(
+                                            peopleSort === "number-asc"
+                                              ? "number-desc"
+                                              : "number-asc",
+                                          )
+                                        }
+                                      >
+                                        No. peserta{" "}
+                                        <span aria-hidden="true">
+                                          <svg
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 16 16"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="1.5"
+                                          >
+                                            {peopleSort !== "number-desc" ? (
+                                              <path d="m4 6 4-4 4 4" />
+                                            ) : null}
+                                            {peopleSort !== "number-asc" ? (
+                                              <path d="m4 10 4 4 4-4" />
+                                            ) : null}
+                                          </svg>
+                                        </span>
+                                      </button>
+                                    </TableCell>
+                                    <TableCell
+                                      component="th"
+                                      scope="col"
+                                      aria-sort={
+                                        peopleSort === "session-asc"
+                                          ? "ascending"
+                                          : peopleSort === "session-desc"
+                                            ? "descending"
+                                            : "none"
+                                      }
+                                    >
+                                      <button
+                                        type="button"
+                                        className="table-sort"
+                                        title="Urutkan berdasarkan waktu mulai sesi"
+                                        onClick={() =>
+                                          setPeopleSort(
+                                            peopleSort === "session-asc"
+                                              ? "session-desc"
+                                              : "session-asc",
+                                          )
+                                        }
+                                      >
+                                        Sesi peserta{" "}
+                                        <span aria-hidden="true">
+                                          <svg
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 16 16"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="1.5"
+                                          >
+                                            {peopleSort !== "session-desc" ? (
+                                              <path d="m4 6 4-4 4 4" />
+                                            ) : null}
+                                            {peopleSort !== "session-asc" ? (
+                                              <path d="m4 10 4 4 4-4" />
+                                            ) : null}
+                                          </svg>
+                                        </span>
+                                      </button>
+                                    </TableCell>
+                                    <TableCell component="th">
+                                      Hasil undian
+                                    </TableCell>
+                                    <TableCell component="th">
+                                      Tindakan
+                                    </TableCell>
+                                  </TableRow>
+                                </TableHead>
+                              </DataTable>
+                            ) : (
+                              <div className="panel-inset">
+                                <Empty title="Peserta tidak ditemukan">
+                                  {hasPeopleFilters
+                                    ? "Ubah pencarian atau filter, atau gunakan Reset filter & urutan untuk melihat peserta lain."
+                                    : admin
+                                      ? "Tambahkan peserta dan tentukan kecamatannya."
+                                      : "Panitia belum memasukkan peserta untuk kecamatan Anda."}
+                                </Empty>
+                              </div>
+                            )}
+                          </section>
+                        </>
+                      ) : null}
+                      {page === "sessions" && admin ? (
+                        <>
+                          <div className="notice">
+                            Setiap cabang memiliki satu sesi. Peserta dapat
+                            langsung mengundi sesuai cabang yang diikuti.
+                          </div>
+                          <section className="panel data-panel section-gap">
+                            {data.sessions.length ? (
+                              <DataTable
+                                rows={data.sessions}
+                                resetKey={"sessions"}
+                                paginationDisabled={busy}
+                                renderRow={(s) => (
+                                  <SessionRow
+                                    key={s.id}
+                                    session={s}
+                                    name={category(s.category_id)}
+                                    count={
+                                      data.packages.filter(
+                                        (m) => m.category_id === s.category_id,
+                                      ).length
+                                    }
+                                    busy={busy}
+                                    updating={updating("session", s.id)}
+                                    save={async (open) =>
+                                      (await act(
+                                        "session",
+                                        { id: s.id, open, repeat: false },
+                                        "Pengaturan sesi disimpan.",
+                                      )) !== null
+                                    }
+                                  />
+                                )}
+                                aria-label="Cabang dan sesi"
+                                className="table sessions-table"
+                              >
+                                <TableHead>
+                                  <TableRow>
+                                    <TableCell component="th" scope="col">
+                                      Cabang
+                                    </TableCell>
+                                    <TableCell component="th" scope="col">
+                                      Paket
+                                    </TableCell>
+                                    <TableCell component="th" scope="col">
+                                      Status
+                                    </TableCell>
+                                    <TableCell component="th" scope="col">
+                                      Tindakan
+                                    </TableCell>
+                                  </TableRow>
+                                </TableHead>
+                              </DataTable>
+                            ) : (
+                              <div className="panel-inset">
+                                <Empty title="Belum ada sesi">
+                                  Sesi perlombaan belum tersedia.
+                                </Empty>
+                              </div>
+                            )}
+                          </section>
+                        </>
+                      ) : null}
+                      {page === "bank" && admin ? (
+                        <BankTable
+                          packages={data.packages}
+                          categories={data.categories}
+                          people={data.people}
+                          results={data.results}
+                          busy={busy}
+                          onView={(result) =>
+                            setModal({ kind: "receipt", result })
+                          }
+                          onEdit={(pack) =>
+                            setModal({ kind: "package", package: pack })
+                          }
+                        />
+                      ) : null}
+                      {page === "accounts" && admin ? (
+                        <section className="panel data-panel">
                           <DataTable
-                            rows={visiblePeople}
-                            resetKey={JSON.stringify([
-                              query,
-                              peopleDistrict,
-                              peopleCategory,
-                              peopleGender,
-                              peopleDrawStatus,
-                              peopleSort,
-                              impersonatedId,
-                            ])}
+                            rows={data.profiles.filter(
+                              (p) => p.role === "district",
+                            )}
+                            resetKey={"accounts"}
                             paginationDisabled={busy}
                             renderRow={(p) => (
                               <TableRow
                                 key={p.id}
-                                aria-busy={updating("person", p.id)}
+                                aria-busy={updating("account", p.id)}
                               >
-                                {admin ? (
-                                  <TableCell data-label="Pilih">
-                                    <input
-                                      type="checkbox"
-                                      aria-label={`Pilih ${p.name}`}
-                                      disabled={busy}
-                                      checked={selectedPeople.includes(p.id)}
-                                      onChange={(event) =>
-                                        setSelectedPeople((current) =>
-                                          event.target.checked
-                                            ? [...current, p.id]
-                                            : current.filter(
-                                                (id) => id !== p.id,
-                                              ),
-                                        )
-                                      }
-                                    />
-                                  </TableCell>
-                                ) : null}
-                                <TableCell data-label="Peserta">
-                                  <strong>{p.name}</strong>
-                                  <small>{p.gender}</small>
-                                  <small>{p.district}</small>
+                                <TableCell data-label="Kecamatan">
+                                  <strong>{p.district}</strong>
                                 </TableCell>
-                                <TableCell data-label="No. peserta">
-                                  {personNumbers(p)}
-                                  <small>
-                                    {p.entries.map(category).join(", ")}
-                                  </small>
+                                <TableCell data-label="Nama pengguna">
+                                  {p.username}
                                 </TableCell>
-                                <TableCell data-label="Sesi peserta">
-                                  <ParticipantSessionControl
-                                    person={p}
-                                    busy={busy}
-                                    onConfigure={
-                                      admin
-                                        ? () =>
-                                            setModal({
-                                              kind: "participant-schedule",
-                                              person: p,
-                                            })
-                                        : undefined
-                                    }
-                                  />
-                                </TableCell>
-                                <TableCell data-label="Hasil undian">
-                                  <ParticipantResults
-                                    onDelete={
-                                      admin
-                                        ? (result) =>
-                                            setModal({
-                                              kind: "delete-history",
-                                              result,
-                                            })
-                                        : undefined
-                                    }
-                                    results={data.results.filter(
-                                      (r) => r.person_id === p.id,
-                                    )}
-                                    busy={busy}
-                                    onView={(result) =>
-                                      setModal({ kind: "receipt", result })
-                                    }
-                                    onCancel={
-                                      admin
-                                        ? (result) =>
-                                            setModal({
-                                              kind: "cancel",
-                                              result,
-                                            })
-                                        : undefined
-                                    }
-                                  />
+                                <TableCell data-label="Status">
+                                  <Badge>
+                                    {p.active ? "Aktif" : "Nonaktif"}
+                                  </Badge>
                                 </TableCell>
                                 <TableCell data-label="Tindakan">
-                                  {personActions(p)}
+                                  <div className="actions">
+                                    <button
+                                      className="btn"
+                                      disabled={busy || !p.active}
+                                      onClick={() => {
+                                        if (
+                                          window.confirm(
+                                            "Masuk sebagai Kecamatan " +
+                                              p.district +
+                                              "? Undian yang dilakukan akan disimpan sebagai hasil resmi atas nama kecamatan ini, dengan Anda sebagai admin pelaksana.",
+                                          )
+                                        )
+                                          changeImpersonation(p.id);
+                                      }}
+                                    >
+                                      Masuk sebagai kecamatan
+                                    </button>
+                                    <button
+                                      className="btn icon-btn"
+                                      disabled={busy}
+                                      aria-label={`Edit akun ${p.district}`}
+                                      title={`Edit akun ${p.district}`}
+                                      onClick={() =>
+                                        setModal({
+                                          kind: "district-account",
+                                          id: p.id,
+                                        })
+                                      }
+                                    >
+                                      <ActionIcon name="edit" />
+                                    </button>
+                                    <button
+                                      className="btn"
+                                      disabled={busy}
+                                      onClick={() =>
+                                        setModal({
+                                          kind: "toggle-account",
+                                          id: p.id,
+                                        })
+                                      }
+                                    >
+                                      {p.active ? "Nonaktifkan" : "Aktifkan"}
+                                    </button>
+                                    <button
+                                      className="btn"
+                                      onClick={() =>
+                                        setModal({ kind: "reset", id: p.id })
+                                      }
+                                    >
+                                      Reset kata sandi
+                                    </button>
+                                  </div>
                                 </TableCell>
                               </TableRow>
                             )}
-                            aria-label="Daftar peserta"
-                            className={`table people-table${admin ? " people-table-admin" : ""}`}
+                            aria-label="Akun kecamatan"
+                            className="table"
                           >
-                            {admin ? (
-                              <caption className="people-table-caption">
-                                <div className="actions">
-                                  <span role="status">
-                                    {
-                                      visiblePeople.filter((p) =>
-                                        selectedPeople.includes(p.id),
-                                      ).length
-                                    }{" "}
-                                    peserta dipilih
-                                  </span>
-                                  <button
-                                    className="btn"
-                                    disabled={busy || !selectedPeople.length}
-                                    onClick={() =>
-                                      setModal({ kind: "participant-schedule" })
-                                    }
-                                  >
-                                    Atur sesi terpilih
-                                  </button>
-                                  <button
-                                    className="btn"
-                                    disabled={busy || !selectedPeople.length}
-                                    onClick={() => setSelectedPeople([])}
-                                  >
-                                    Hapus pilihan
-                                  </button>
-                                </div>
-                              </caption>
-                            ) : null}
                             <TableHead>
                               <TableRow>
-                                {admin ? (
-                                  <TableCell component="th" scope="col">
-                                    <input
-                                      type="checkbox"
-                                      aria-label="Pilih semua peserta sesuai filter, di semua halaman"
-                                      disabled={busy}
-                                      checked={
-                                        visiblePeople.length > 0 &&
-                                        visiblePeople.every((p) =>
-                                          selectedPeople.includes(p.id),
-                                        )
-                                      }
-                                      ref={(element) => {
-                                        if (element)
-                                          element.indeterminate =
-                                            visiblePeople.some((p) =>
-                                              selectedPeople.includes(p.id),
-                                            ) &&
-                                            !visiblePeople.every((p) =>
-                                              selectedPeople.includes(p.id),
-                                            );
-                                      }}
-                                      onChange={(event) =>
-                                        setSelectedPeople(
-                                          event.target.checked
-                                            ? visiblePeople.map((p) => p.id)
-                                            : [],
-                                        )
-                                      }
-                                    />
-                                  </TableCell>
-                                ) : null}
-                                <TableCell
-                                  component="th"
-                                  scope="col"
-                                  aria-sort={
-                                    peopleSort === "name-asc"
-                                      ? "ascending"
-                                      : peopleSort === "name-desc"
-                                        ? "descending"
-                                        : "none"
-                                  }
-                                >
-                                  <button
-                                    type="button"
-                                    className="table-sort"
-                                    onClick={() =>
-                                      setPeopleSort(
-                                        peopleSort === "name-asc"
-                                          ? "name-desc"
-                                          : "name-asc",
-                                      )
-                                    }
-                                  >
-                                    Peserta{" "}
-                                    <span aria-hidden="true">
-                                      <svg
-                                        width="16"
-                                        height="16"
-                                        viewBox="0 0 16 16"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="1.5"
-                                      >
-                                        {peopleSort !== "name-desc" ? (
-                                          <path d="m4 6 4-4 4 4" />
-                                        ) : null}
-                                        {peopleSort !== "name-asc" ? (
-                                          <path d="m4 10 4 4 4-4" />
-                                        ) : null}
-                                      </svg>
-                                    </span>
-                                  </button>
-                                </TableCell>
-                                <TableCell
-                                  component="th"
-                                  scope="col"
-                                  aria-sort={
-                                    peopleSort === "number-asc"
-                                      ? "ascending"
-                                      : peopleSort === "number-desc"
-                                        ? "descending"
-                                        : "none"
-                                  }
-                                >
-                                  <button
-                                    type="button"
-                                    className="table-sort"
-                                    onClick={() =>
-                                      setPeopleSort(
-                                        peopleSort === "number-asc"
-                                          ? "number-desc"
-                                          : "number-asc",
-                                      )
-                                    }
-                                  >
-                                    No. peserta{" "}
-                                    <span aria-hidden="true">
-                                      <svg
-                                        width="16"
-                                        height="16"
-                                        viewBox="0 0 16 16"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="1.5"
-                                      >
-                                        {peopleSort !== "number-desc" ? (
-                                          <path d="m4 6 4-4 4 4" />
-                                        ) : null}
-                                        {peopleSort !== "number-asc" ? (
-                                          <path d="m4 10 4 4 4-4" />
-                                        ) : null}
-                                      </svg>
-                                    </span>
-                                  </button>
-                                </TableCell>
-                                <TableCell
-                                  component="th"
-                                  scope="col"
-                                  aria-sort={
-                                    peopleSort === "session-asc"
-                                      ? "ascending"
-                                      : peopleSort === "session-desc"
-                                        ? "descending"
-                                        : "none"
-                                  }
-                                >
-                                  <button
-                                    type="button"
-                                    className="table-sort"
-                                    title="Urutkan berdasarkan waktu mulai sesi"
-                                    onClick={() =>
-                                      setPeopleSort(
-                                        peopleSort === "session-asc"
-                                          ? "session-desc"
-                                          : "session-asc",
-                                      )
-                                    }
-                                  >
-                                    Sesi peserta{" "}
-                                    <span aria-hidden="true">
-                                      <svg
-                                        width="16"
-                                        height="16"
-                                        viewBox="0 0 16 16"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="1.5"
-                                      >
-                                        {peopleSort !== "session-desc" ? (
-                                          <path d="m4 6 4-4 4 4" />
-                                        ) : null}
-                                        {peopleSort !== "session-asc" ? (
-                                          <path d="m4 10 4 4 4-4" />
-                                        ) : null}
-                                      </svg>
-                                    </span>
-                                  </button>
-                                </TableCell>
+                                <TableCell component="th">Kecamatan</TableCell>
                                 <TableCell component="th">
-                                  Hasil undian
+                                  Nama pengguna
                                 </TableCell>
+                                <TableCell component="th">Status</TableCell>
                                 <TableCell component="th">Tindakan</TableCell>
                               </TableRow>
                             </TableHead>
                           </DataTable>
-                        ) : (
-                          <div className="panel-inset">
-                            <Empty title="Peserta tidak ditemukan">
-                              {hasPeopleFilters
-                                ? "Ubah pencarian atau filter, atau gunakan Reset filter & urutan untuk melihat peserta lain."
-                                : admin
-                                  ? "Tambahkan peserta dan tentukan kecamatannya."
-                                  : "Panitia belum memasukkan peserta untuk kecamatan Anda."}
-                            </Empty>
-                          </div>
-                        )}
-                      </section>
-                    </>
-                  ) : null}
-                  {page === "sessions" && admin ? (
-                    <>
-                      <div className="notice">
-                        Setiap cabang memiliki satu sesi. Peserta dapat langsung
-                        mengundi sesuai cabang yang diikuti.
-                      </div>
-                      <section className="panel data-panel section-gap">
-                        {data.sessions.length ? (
-                          <DataTable
-                            rows={data.sessions}
-                            resetKey={"sessions"}
-                            paginationDisabled={busy}
-                            renderRow={(s) => (
-                              <SessionRow
-                                key={s.id}
-                                session={s}
-                                name={category(s.category_id)}
-                                count={
-                                  data.packages.filter(
-                                    (m) => m.category_id === s.category_id,
-                                  ).length
-                                }
-                                busy={busy}
-                                updating={updating("session", s.id)}
-                                save={async (open) =>
-                                  (await act(
-                                    "session",
-                                    { id: s.id, open, repeat: false },
-                                    "Pengaturan sesi disimpan.",
-                                  )) !== null
-                                }
-                              />
-                            )}
-                            aria-label="Cabang dan sesi"
-                            className="table sessions-table"
-                          >
-                            <TableHead>
-                              <TableRow>
-                                <TableCell component="th" scope="col">
-                                  Cabang
-                                </TableCell>
-                                <TableCell component="th" scope="col">
-                                  Paket
-                                </TableCell>
-                                <TableCell component="th" scope="col">
-                                  Status
-                                </TableCell>
-                                <TableCell component="th" scope="col">
-                                  Tindakan
-                                </TableCell>
-                              </TableRow>
-                            </TableHead>
-                          </DataTable>
-                        ) : (
-                          <div className="panel-inset">
-                            <Empty title="Belum ada sesi">
-                              Sesi perlombaan belum tersedia.
-                            </Empty>
-                          </div>
-                        )}
-                      </section>
-                    </>
-                  ) : null}
-                  {page === "bank" && admin ? (
-                    <BankTable
-                      packages={data.packages}
-                      categories={data.categories}
-                      people={data.people}
-                      results={data.results}
-                      busy={busy}
-                      onView={(result) => setModal({ kind: "receipt", result })}
-                      onEdit={(pack) =>
-                        setModal({ kind: "package", package: pack })
-                      }
-                    />
-                  ) : null}
-                  {page === "accounts" && admin ? (
-                    <section className="panel data-panel">
-                      <DataTable
-                        rows={data.profiles.filter(
-                          (p) => p.role === "district",
-                        )}
-                        resetKey={"accounts"}
-                        paginationDisabled={busy}
-                        renderRow={(p) => (
-                          <TableRow
-                            key={p.id}
-                            aria-busy={updating("account", p.id)}
-                          >
-                            <TableCell data-label="Kecamatan">
-                              <strong>{p.district}</strong>
-                            </TableCell>
-                            <TableCell data-label="Nama pengguna">
-                              {p.username}
-                            </TableCell>
-                            <TableCell data-label="Status">
-                              <Badge>{p.active ? "Aktif" : "Nonaktif"}</Badge>
-                            </TableCell>
-                            <TableCell data-label="Tindakan">
-                              <div className="actions">
-                                <button
-                                  className="btn"
-                                  disabled={busy || !p.active}
-                                  onClick={() => {
-                                    if (
-                                      window.confirm(
-                                        "Masuk sebagai Kecamatan " +
-                                          p.district +
-                                          "? Undian yang dilakukan akan disimpan sebagai hasil resmi atas nama kecamatan ini, dengan Anda sebagai admin pelaksana.",
-                                      )
-                                    )
-                                      changeImpersonation(p.id);
-                                  }}
-                                >
-                                  Masuk sebagai kecamatan
-                                </button>
-                                <button
-                                  className="btn icon-btn"
-                                  disabled={busy}
-                                  aria-label={`Edit akun ${p.district}`}
-                                  title={`Edit akun ${p.district}`}
-                                  onClick={() =>
-                                    setModal({
-                                      kind: "district-account",
-                                      id: p.id,
-                                    })
-                                  }
-                                >
-                                  <ActionIcon name="edit" />
-                                </button>
-                                <button
-                                  className="btn"
-                                  disabled={busy}
-                                  onClick={() =>
-                                    setModal({
-                                      kind: "toggle-account",
-                                      id: p.id,
-                                    })
-                                  }
-                                >
-                                  {p.active ? "Nonaktifkan" : "Aktifkan"}
-                                </button>
-                                <button
-                                  className="btn"
-                                  onClick={() =>
-                                    setModal({ kind: "reset", id: p.id })
-                                  }
-                                >
-                                  Reset kata sandi
-                                </button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        )}
-                        aria-label="Akun kecamatan"
-                        className="table"
-                      >
-                        <TableHead>
-                          <TableRow>
-                            <TableCell component="th">Kecamatan</TableCell>
-                            <TableCell component="th">Nama pengguna</TableCell>
-                            <TableCell component="th">Status</TableCell>
-                            <TableCell component="th">Tindakan</TableCell>
-                          </TableRow>
-                        </TableHead>
-                      </DataTable>
-                      {!data.profiles.some((p) => p.role === "district") ? (
-                        <div className="panel-inset">
-                          <Empty title="Akun kecamatan belum tersedia">
-                            Gunakan Tambah akun kecamatan untuk membuat akun.
-                          </Empty>
-                        </div>
-                      ) : null}
-                    </section>
-                  ) : null}
-                  {page === "draw" && !admin ? (
-                    <div className="draw-layout">
-                      <ol className="stepper" aria-label="Tahapan undian">
-                        {[
-                          "Pilih peserta",
-                          "Periksa data",
-                          "Proses undian",
-                          "Bukti hasil",
-                        ].map((s, i) => (
-                          <li
-                            key={s}
-                            aria-current={
-                              drawStep === i + 1 ? "step" : undefined
-                            }
-                          >
-                            <span>{i + 1}</span>
-                            {s}
-                          </li>
-                        ))}
-                      </ol>
-                      <div className="draw-context">
-                        <span>
-                          Kafilah <strong>{data.profile.district}</strong>
-                        </span>
-                        <span>
-                          Satu hasil undian aktif per peserta dan cabang
-                        </span>
-                      </div>
-                      <div hidden={drawStep !== 1}>
-                        <DrawPicker
-                          people={data.people}
-                          sessions={data.sessions}
-                          categories={data.categories}
-                          results={data.results}
-                          busy={busy || loading}
-                          onSelect={(person, session) => {
-                            setSelection({ person, session });
-                            setDrawStep(2);
-                          }}
-                          onView={(result) => {
-                            setDrawResult(result);
-                            setDrawStep(4);
-                          }}
-                        />
-                      </div>
-                      {drawStep === 2 && selection ? (
-                        <section className="panel">
-                          <h2>Periksa data undian</h2>
-                          <dl className="review">
-                            <div>
-                              <dt>Nama peserta</dt>
-                              <dd>{selection.person.name}</dd>
+                          {!data.profiles.some((p) => p.role === "district") ? (
+                            <div className="panel-inset">
+                              <Empty title="Akun kecamatan belum tersedia">
+                                Gunakan Tambah akun kecamatan untuk membuat
+                                akun.
+                              </Empty>
                             </div>
-                            <div>
-                              <dt>No. peserta</dt>
-                              <dd>
-                                {participantNumber(
-                                  selection.person.participant_number,
-                                  category(selection.session.category_id),
-                                )}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt>Kecamatan</dt>
-                              <dd>{selection.person.district}</dd>
-                            </div>
-                            <div>
-                              <dt>Kategori peserta</dt>
-                              <dd>{selection.person.gender}</dd>
-                            </div>
-                            <div>
-                              <dt>Cabang</dt>
-                              <dd>{category(selection.session.category_id)}</dd>
-                            </div>
-                          </dl>
-                          <p className="notice section-gap">
-                            Hasil langsung ditetapkan dan disimpan. Jika ada
-                            kesalahan, pembatalan hanya dapat dilakukan panitia
-                            dengan alasan yang tercatat.
-                          </p>
-                          <div className="draw-action">
-                            <button
-                              className="btn"
-                              disabled={busy}
-                              onClick={() => setDrawStep(1)}
-                            >
-                              Kembali
-                            </button>
-                            <button
-                              className="btn primary"
-                              disabled={busy || loading}
-                              onClick={async () => {
-                                if (busy || mutation.current) return;
-                                setDrawStep(3);
-                                const reducedMotion = window.matchMedia(
-                                  "(prefers-reduced-motion: reduce)",
-                                ).matches;
-                                const [result] = await Promise.all([
-                                  act(
-                                    "draw",
-                                    {
-                                      id: selection.person.id,
-                                      session_id: selection.session.id,
-                                    },
-                                    "Hasil undian tersimpan.",
-                                  ),
-                                  new Promise<void>((resolve) =>
-                                    window.setTimeout(
-                                      resolve,
-                                      reducedMotion ? 0 : 2200,
-                                    ),
-                                  ),
-                                ]);
-                                if (result) {
-                                  setDrawResult(result as Result);
-                                  setDrawStep(4);
-                                } else setDrawStep(2);
-                              }}
-                            >
-                              Tetapkan maqro
-                            </button>
-                          </div>
+                          ) : null}
                         </section>
                       ) : null}
-                      {drawStep === 3 ? (
-                        <section
-                          className="panel drawing"
-                          role="status"
-                          aria-live="polite"
-                          aria-busy="true"
-                        >
-                          <div className="draw-shuffle" aria-hidden="true">
-                            <span className="draw-card draw-card-left" />
-                            <span className="draw-card draw-card-right" />
-                            <span className="draw-card draw-card-front">
-                              <span>MAQRO</span>
-                              <span className="draw-card-seal">?</span>
+                      {page === "draw" && !admin ? (
+                        <div className="draw-layout">
+                          <ol className="stepper" aria-label="Tahapan undian">
+                            {[
+                              "Pilih peserta",
+                              "Periksa data",
+                              "Proses undian",
+                              "Bukti hasil",
+                            ].map((s, i) => (
+                              <li
+                                key={s}
+                                aria-current={
+                                  drawStep === i + 1 ? "step" : undefined
+                                }
+                              >
+                                <span>{i + 1}</span>
+                                {s}
+                              </li>
+                            ))}
+                          </ol>
+                          <div className="draw-context">
+                            <span>
+                              Kafilah <strong>{data.profile.district}</strong>
+                            </span>
+                            <span>
+                              Satu hasil undian aktif per peserta dan cabang
                             </span>
                           </div>
-                          <h2>Mengundi maqro</h2>
-                          <p>Menetapkan maqro dan menyimpan hasil undian.</p>
-                          <p className="muted">
-                            Mohon tunggu, jangan tutup halaman ini.
-                          </p>
-                        </section>
-                      ) : null}
-                      {drawStep === 4 && drawResult ? (
-                        <>
-                          <div className="draw-reveal">
-                            <Receipt
-                              result={drawResult}
-                              person={data.people.find(
-                                (p) => p.id === drawResult.person_id,
-                              )}
+                          <div hidden={drawStep !== 1}>
+                            <DrawPicker
+                              people={data.people}
+                              sessions={data.sessions}
+                              categories={data.categories}
+                              results={data.results}
+                              busy={busy || loading}
+                              onSelect={(person, session) => {
+                                setSelection({ person, session });
+                                setDrawStep(2);
+                              }}
+                              onView={(result) => {
+                                setDrawResult(result);
+                                setDrawStep(4);
+                              }}
                             />
                           </div>
-                          <div className="actions receipt-actions">
-                            <button
-                              className="btn"
-                              onClick={() => {
-                                setDrawStep(1);
-                              }}
+                          {drawStep === 2 && selection ? (
+                            <section className="panel">
+                              <h2>Periksa data undian</h2>
+                              <dl className="review">
+                                <div>
+                                  <dt>Nama peserta</dt>
+                                  <dd>{selection.person.name}</dd>
+                                </div>
+                                <div>
+                                  <dt>No. peserta</dt>
+                                  <dd>
+                                    {participantNumber(
+                                      selection.person.participant_number,
+                                      category(selection.session.category_id),
+                                    )}
+                                  </dd>
+                                </div>
+                                <div>
+                                  <dt>Kecamatan</dt>
+                                  <dd>{selection.person.district}</dd>
+                                </div>
+                                <div>
+                                  <dt>Kategori peserta</dt>
+                                  <dd>{selection.person.gender}</dd>
+                                </div>
+                                <div>
+                                  <dt>Cabang</dt>
+                                  <dd>
+                                    {category(selection.session.category_id)}
+                                  </dd>
+                                </div>
+                              </dl>
+                              <p className="notice section-gap">
+                                Hasil langsung ditetapkan dan disimpan. Jika ada
+                                kesalahan, pembatalan hanya dapat dilakukan
+                                panitia dengan alasan yang tercatat.
+                              </p>
+                              <div className="draw-action">
+                                <button
+                                  className="btn"
+                                  disabled={busy}
+                                  onClick={() => setDrawStep(1)}
+                                >
+                                  Kembali
+                                </button>
+                                <button
+                                  className="btn primary"
+                                  disabled={busy || loading}
+                                  onClick={async () => {
+                                    if (busy || mutation.current) return;
+                                    setDrawStep(3);
+                                    const reducedMotion = window.matchMedia(
+                                      "(prefers-reduced-motion: reduce)",
+                                    ).matches;
+                                    const [result] = await Promise.all([
+                                      act(
+                                        "draw",
+                                        {
+                                          id: selection.person.id,
+                                          session_id: selection.session.id,
+                                        },
+                                        "Hasil undian tersimpan.",
+                                      ),
+                                      new Promise<void>((resolve) =>
+                                        window.setTimeout(
+                                          resolve,
+                                          reducedMotion ? 0 : 2200,
+                                        ),
+                                      ),
+                                    ]);
+                                    if (result) {
+                                      setDrawResult(result as Result);
+                                      setDrawStep(4);
+                                    } else setDrawStep(2);
+                                  }}
+                                >
+                                  Tetapkan maqro
+                                </button>
+                              </div>
+                            </section>
+                          ) : null}
+                          {drawStep === 3 ? (
+                            <section
+                              className="panel drawing"
+                              role="status"
+                              aria-live="polite"
+                              aria-busy="true"
                             >
-                              Kembali ke peserta
-                            </button>
-                            <button
-                              className="btn primary"
-                              onClick={() => window.print()}
-                            >
-                              Cetak / Simpan PDF
-                            </button>
-                          </div>
-                        </>
+                              <div className="draw-shuffle" aria-hidden="true">
+                                <span className="draw-card draw-card-left" />
+                                <span className="draw-card draw-card-right" />
+                                <span className="draw-card draw-card-front">
+                                  <span>MAQRO</span>
+                                  <span className="draw-card-seal">?</span>
+                                </span>
+                              </div>
+                              <h2>Mengundi maqro</h2>
+                              <p>
+                                Menetapkan maqro dan menyimpan hasil undian.
+                              </p>
+                              <p className="muted">
+                                Mohon tunggu, jangan tutup halaman ini.
+                              </p>
+                            </section>
+                          ) : null}
+                          {drawStep === 4 && drawResult ? (
+                            <>
+                              <div className="draw-reveal">
+                                <Receipt
+                                  result={drawResult}
+                                  person={data.people.find(
+                                    (p) => p.id === drawResult.person_id,
+                                  )}
+                                />
+                              </div>
+                              <div className="actions receipt-actions">
+                                <button
+                                  className="btn"
+                                  onClick={() => {
+                                    setDrawStep(1);
+                                  }}
+                                >
+                                  Kembali ke peserta
+                                </button>
+                                <button
+                                  className="btn primary"
+                                  onClick={() => window.print()}
+                                >
+                                  Cetak / Simpan PDF
+                                </button>
+                              </div>
+                            </>
+                          ) : null}
+                        </div>
                       ) : null}
-                    </div>
-                  ) : null}
-                  {admin ? (
-                    <ActivityLog active={page === "logs"} revision={rawData!} />
-                  ) : null}
-                </>
-              )}
-            </div>
+                      {admin ? (
+                        <ActivityLog
+                          active={page === "logs"}
+                          revision={rawData!}
+                        />
+                      ) : null}
+                    </>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </main>
       </div>

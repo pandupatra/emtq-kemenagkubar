@@ -1999,6 +1999,64 @@ dialog::backdrop {
 }
 
 /* Kartu undian tetap tertutup sampai hasil server tersimpan. */
+.round-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.page-head .actions[hidden] {
+  display: none !important;
+}
+.round-switch > span {
+  margin-left: 8px;
+  color: var(--muted);
+}
+.final-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.final-filters {
+  grid-template-columns: minmax(180px, 2fr) minmax(160px, 1fr) auto;
+  align-items: end;
+}
+.final-workspace .table td {
+  overflow-wrap: anywhere;
+}
+.final-workspace input[type="checkbox"] {
+  min-width: 24px;
+  min-height: 24px;
+  accent-color: var(--green);
+}
+@media (max-width: 699px) {
+  .final-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .final-toolbar .actions {
+    width: 100%;
+  }
+  .final-toolbar .btn {
+    flex: 1 1 auto;
+  }
+  .final-workspace .table td > * {
+    min-width: 0;
+  }
+  .final-workspace .participant-result {
+    flex-wrap: wrap;
+  }
+}
+@media print {
+  .round-switch,
+  .final-toolbar {
+    display: none !important;
+  }
+}
+
 .draw-shuffle {
   position: relative;
   width: 200px;
