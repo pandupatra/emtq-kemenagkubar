@@ -12,6 +12,7 @@ import { participantNumber } from "@/lib/competition-codes";
 import DataTable, { TableCell, TableHead, TableRow } from "./data-table";
 import DrawPicker from "./draw-picker";
 import BankTable from "./bank-table";
+import WorkSummary from "./work-summary";
 import ParticipantResults from "./participant-results";
 import ParticipantSessionControl from "./participant-session-control";
 import SessionScheduleForm from "./session-schedule-form";
@@ -53,11 +54,13 @@ export default function FinalWorkspace({
   page,
   impersonatedId,
   onBusy,
+  onOpenPeople,
 }: {
   base: Data;
   page: string;
   impersonatedId?: string;
   onBusy: (busy: boolean) => void;
+  onOpenPeople: () => void;
 }) {
   const admin = base.profile.role === "admin";
   const [data, setData] = useState<FinalData>(empty);
@@ -69,6 +72,8 @@ export default function FinalWorkspace({
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
+  const [district, setDistrict] = useState("");
+  const [drawStatus, setDrawStatus] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [selection, setSelection] = useState<{
     person: Person;
@@ -141,6 +146,10 @@ export default function FinalWorkspace({
     setResult(null);
     setDialog(null);
     setError("");
+    if (page !== "people") {
+      setDistrict("");
+      setDrawStatus("");
+    }
   }, [page]);
   useEffect(() => {
     if (!feedback) return;
@@ -203,8 +212,17 @@ export default function FinalWorkspace({
       onBusy(false);
     }
   }
+  const summaryData = finalExportData(base, data);
+  const drawnPeople = new Set(
+    data.final_results.filter((r) => !r.cancelled).map((r) => r.person_id),
+  );
   const search = (p: Person) =>
     (!category || p.entries.includes(category)) &&
+    (!district || p.district === district) &&
+    (!drawStatus ||
+      (drawStatus === "drawn"
+        ? drawnPeople.has(p.id)
+        : !drawnPeople.has(p.id))) &&
     `${p.name} ${personNumber(p)} ${p.district}`
       .toLocaleLowerCase("id")
       .includes(query.trim().toLocaleLowerCase("id"));
@@ -265,11 +283,51 @@ export default function FinalWorkspace({
           ))}
         </select>
       </div>
+      {admin ? (
+        <div className="field">
+          <label htmlFor="final-district">Kecamatan</label>
+          <select
+            id="final-district"
+            value={district}
+            onChange={(e) => setDistrict(e.target.value)}
+          >
+            <option value="">Semua kecamatan</option>
+            {[
+              ...new Set([
+                ...base.profiles.flatMap((p) =>
+                  p.role === "district" && p.district ? [p.district] : [],
+                ),
+                ...people.map((p) => p.district),
+              ]),
+            ]
+              .sort((a, b) => a.localeCompare(b, "id"))
+              .map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+          </select>
+        </div>
+      ) : null}
+      <div className="field">
+        <label htmlFor="final-draw-status">Status undian</label>
+        <select
+          id="final-draw-status"
+          value={drawStatus}
+          onChange={(e) => setDrawStatus(e.target.value)}
+        >
+          <option value="">Semua status</option>
+          <option value="drawn">Sudah mengundi</option>
+          <option value="not-drawn">Belum mengundi</option>
+        </select>
+      </div>
       <button
         className="btn"
         onClick={() => {
           setQuery("");
           setCategory("");
+          setDistrict("");
+          setDrawStatus("");
         }}
       >
         Reset filter
@@ -325,10 +383,12 @@ export default function FinalWorkspace({
       aria-busy={busy}
     >
       <div className="final-toolbar">
-        <p>
-          Babak <strong>Final</strong> · {people.length} finalis ·{" "}
-          {new Set(activeResults.map((r) => r.person_id)).size} sudah mengundi
-        </p>
+        {page !== "dashboard" ? (
+          <p>
+            Babak <strong>Final</strong> · {people.length} finalis ·{" "}
+            {new Set(activeResults.map((r) => r.person_id)).size} sudah mengundi
+          </p>
+        ) : null}
         <div className="actions">
           {admin && page === "people" ? (
             <button
@@ -348,7 +408,7 @@ export default function FinalWorkspace({
               Tambah maqro final
             </button>
           ) : null}
-          {["people", "dashboard"].includes(page) ? (
+          {page === "people" ? (
             <button
               className="btn"
               disabled={busy || exporting || !people.length}
@@ -373,7 +433,17 @@ export default function FinalWorkspace({
         </p>
       ) : null}
 
-      {["people", "dashboard"].includes(page) ? (
+      {page === "dashboard" && admin ? (
+        <WorkSummary
+          data={summaryData}
+          openPeople={(filter) => {
+            setDistrict(filter.district || "");
+            setDrawStatus(filter.status || "");
+            onOpenPeople();
+          }}
+        />
+      ) : null}
+      {page === "people" ? (
         <>
           {filters}
           {admin && chosen.length ? (
@@ -407,7 +477,7 @@ export default function FinalWorkspace({
           ) : (
             <DataTable
               rows={filtered}
-              resetKey={`${query}:${category}`}
+              resetKey={`${query}:${category}:${district}:${drawStatus}`}
               paginationDisabled={busy}
               className="table final-people-table"
               renderRow={(p) => (

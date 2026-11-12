@@ -10,8 +10,11 @@ const { values } = parseArgs({
     file: { type: "string", default: "supabase/seed-packages.example.json" },
     "allow-examples": { type: "boolean", default: false },
     "dry-run": { type: "boolean", default: false },
+    round: { type: "string", default: "Penyisihan" },
   },
 });
+if (!["Penyisihan", "Final"].includes(values.round))
+  throw new Error("Pilih --round Penyisihan atau Final.");
 const item = z
   .object({
     category: z.string().trim().min(1).optional(),
@@ -69,6 +72,101 @@ if (unknown.length)
   throw new Error(
     `Kategori tidak tersedia: ${unknown.join(", ")}. Tidak ada paket ditambahkan.`,
   );
+if (values.round === "Final") {
+  const keyOf = (p) => JSON.stringify([p.category_id, p.surah, p.verses]);
+  const planned = [
+    ...new Map(
+      expanded.map((p) => {
+        const row = {
+          category_id: categoryIds.get(p.category),
+          surah: p.surah,
+          verses: p.verses,
+        };
+        return [keyOf(row), row];
+      }),
+    ).values(),
+  ];
+  async function readFinalPackages() {
+    const rows = [];
+    for (let offset = 0; ; offset += 500) {
+      const { data, error } = await db
+        .from("final_packages")
+        .select("id,category_id,surah,verses")
+        .order("id")
+        .range(offset, offset + 499);
+      if (error)
+        throw new Error(
+          `Bank maqro Final belum dapat dimuat (${error.code}). Pastikan migrasi Final sudah diterapkan.`,
+        );
+      rows.push(...data);
+      if (data.length < 500) return rows;
+    }
+  }
+  const before = await readFinalPackages();
+  const existing = new Set(before.map(keyOf));
+  const pending = planned
+    .filter((p) => !existing.has(keyOf(p)))
+    .map((p) => {
+      const hex = createHash("sha256")
+        .update("maqro-final-v1:" + keyOf(p))
+        .digest("hex");
+      const id = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+      if (before.some((row) => row.id === id && keyOf(row) !== keyOf(p)))
+        throw new Error(
+          "ID paket Final berbenturan dengan data lain. Impor dibatalkan.",
+        );
+      return { id, ...p };
+    });
+  const summary = {
+    round: "Final",
+    target: "final_packages",
+    packages: planned.length,
+    pending: pending.length,
+    skipped: planned.length - pending.length,
+    categories: Object.fromEntries(
+      [...new Set(expanded.map((p) => p.category))].map((name) => [
+        name,
+        planned.filter((p) => p.category_id === categoryIds.get(name)).length,
+      ]),
+    ),
+  };
+  if (values["dry-run"]) {
+    console.log(
+      JSON.stringify({ ...summary, dryRun: true, noWrites: true }, null, 2),
+    );
+    process.exit(0);
+  }
+  let added = [];
+  if (pending.length) {
+    const { data, error } = await db
+      .from("final_packages")
+      .upsert(pending, { onConflict: "id", ignoreDuplicates: true })
+      .select("id");
+    if (error) throw new Error(`Impor maqro Final gagal (${error.code}).`);
+    added = data;
+  }
+  const after = await readFinalPackages();
+  if (planned.some((p) => !after.some((row) => keyOf(row) === keyOf(p))))
+    throw new Error(
+      "Verifikasi impor Final belum lengkap. Periksa bank maqro sebelum mengulangi.",
+    );
+  if (
+    before.some(
+      (p) => !after.some((row) => row.id === p.id && keyOf(row) === keyOf(p)),
+    )
+  )
+    throw new Error(
+      "Data lama berubah saat impor. Periksa perubahan bersamaan di bank maqro Final.",
+    );
+  console.log(
+    JSON.stringify(
+      { ...summary, added: added.length, verified: planned.length },
+      null,
+      2,
+    ),
+  );
+  process.exit(0);
+}
 const rows = [
   ...new Map(
     expanded.map((p) => {

@@ -1,0 +1,251 @@
+{
+  "example": false,
+  "source": "Final: Maqro Final Tartil.docx; Maqro Final Tilawah Anak.docx; Maqro Final Tilawah Remaja.docx; Maqro Tilawah Golongan 5 JUZ -.docx; Maqro Tilawah Golongan 1 JUZ -.docx; Maqro Final Mujawwad Dewasa.docx; Maqro Final Murottal Dewasa.docx; Maqro Final Murottal Remaja.docx",
+  "packages": [
+    {
+      "category": "Tartil Al-Qur\u0027an",
+      "surah": "Al An’am",
+      "verses": "71 dst (hal. 108)"
+    },
+    {
+      "category": "Tartil Al-Qur\u0027an",
+      "surah": "Al A’raf",
+      "verses": "100 dst (hal. 130)"
+    },
+    {
+      "category": "Tartil Al-Qur\u0027an",
+      "surah": "Al Anfal",
+      "verses": "59 dst (hal. 147)"
+    },
+    {
+      "category": "Tartil Al-Qur\u0027an",
+      "surah": "Al Anfal",
+      "verses": "71 dst (hal. 148)"
+    },
+    {
+      "category": "Tartil Al-Qur\u0027an",
+      "surah": "At Taubah",
+      "verses": "7 dst (hal. 150)"
+    },
+    {
+      "category": "Tartil Al-Qur\u0027an",
+      "surah": "At Taubah",
+      "verses": "25 dst (hal. 152)"
+    },
+    {
+      "category": "Tilawah Anak",
+      "surah": "Al A’raf",
+      "verses": "148 dst (hal. 134)"
+    },
+    {
+      "category": "Tilawah Anak",
+      "surah": "Al A’raf",
+      "verses": "182 dst (hal. 138)"
+    },
+    {
+      "category": "Tilawah Anak",
+      "surah": "Al Anfal",
+      "verses": "59 dst (hal. 147)"
+    },
+    {
+      "category": "Tilawah Anak",
+      "surah": "Al Anfal",
+      "verses": "71 dst (hal. 148)"
+    },
+    {
+      "category": "Tilawah Anak",
+      "surah": "At Taubah",
+      "verses": "1 dst (hal. 149)"
+    },
+    {
+      "category": "Tilawah Anak",
+      "surah": "At Taubah",
+      "verses": "90 dst (hal. 160)"
+    },
+    {
+      "category": "Tilawah Remaja",
+      "surah": "Al A’raf",
+      "verses": "152 dst (hal. 134)"
+    },
+    {
+      "category": "Tilawah Remaja",
+      "surah": "Al An’am",
+      "verses": "122 dst (hal. 114)"
+    },
+    {
+      "category": "Tilawah Remaja",
+      "surah": "Al Furqon",
+      "verses": "35 dst (hal. 290)"
+    },
+    {
+      "category": "Tilawah Remaja",
+      "surah": "Al Anfal",
+      "verses": "65 dst (hal. 147)"
+    },
+    {
+      "category": "Tilawah Remaja",
+      "surah": "Huud",
+      "verses": "50 dst (hal. 181)"
+    },
+    {
+      "category": "Tilawah Remaja",
+      "surah": "Al An’am",
+      "verses": "145 (hal. 117)"
+    },
+    {
+      "category": "5 Juz dan Tilawah",
+      "surah": "Yunus",
+      "verses": "11 dst (hal. 167)"
+    },
+    {
+      "category": "5 Juz dan Tilawah",
+      "surah": "Hud",
+      "verses": "25 dst (hal. 179)"
+    },
+    {
+      "category": "5 Juz dan Tilawah",
+      "surah": "Ar Ra’d",
+      "verses": "32 dst (hal. 202)"
+    },
+    {
+      "category": "5 Juz dan Tilawah",
+      "surah": "At Taubah",
+      "verses": "30 dst (hal. 153)"
+    },
+    {
+      "category": "5 Juz dan Tilawah",
+      "surah": "At Taubah",
+      "verses": "90 dst (hal. 160)"
+    },
+    {
+      "category": "5 Juz dan Tilawah",
+      "surah": "Al Kahfi",
+      "verses": "23 dst (hal. 236)"
+    },
+    {
+      "category": "5 Juz dan Tilawah",
+      "surah": "Al Hajj",
+      "verses": "34 dst (hal. 268)"
+    },
+    {
+      "category": "1 Juz dan Tilawah",
+      "surah": "Al Imran",
+      "verses": "21 dst (hal. 41)"
+    },
+    {
+      "category": "1 Juz dan Tilawah",
+      "surah": "An Nisa",
+      "verses": "92 dst (hal. 74)"
+    },
+    {
+      "category": "1 Juz dan Tilawah",
+      "surah": "Al Maidah",
+      "verses": "67 dst (hal. 95)"
+    },
+    {
+      "category": "1 Juz dan Tilawah",
+      "surah": "Al An’am",
+      "verses": "21 dst (hal. 103)"
+    },
+    {
+      "category": "1 Juz dan Tilawah",
+      "surah": "Al A’raf",
+      "verses": "1 dst (hal. 119)"
+    },
+    {
+      "category": "1 Juz dan Tilawah",
+      "surah": "Al Anfal",
+      "verses": "65 dst (hal. 147)"
+    },
+    {
+      "category": "Qira\u0027at Mujawwad Dewasa",
+      "surah": "Al Ahqaaf",
+      "verses": "15 dst (hal. 402)"
+    },
+    {
+      "category": "Qira\u0027at Mujawwad Dewasa",
+      "surah": "Az Zuhruf",
+      "verses": "33 dst (hal. 396)"
+    },
+    {
+      "category": "Qira\u0027at Mujawwad Dewasa",
+      "surah": "Al Hujurat",
+      "verses": "9 dst (hal. 412)"
+    },
+    {
+      "category": "Qira\u0027at Mujawwad Dewasa",
+      "surah": "Muhammad",
+      "verses": "13 dst (hal. 406)"
+    },
+    {
+      "category": "Qira\u0027at Mujawwad Dewasa",
+      "surah": "Qaaf",
+      "verses": "30 dst (hal. 415)"
+    },
+    {
+      "category": "Qira\u0027at Mujawwad Dewasa",
+      "surah": "Al Qamar",
+      "verses": "1 dst (hal. 422)"
+    },
+    {
+      "category": "Qira\u0027at Murattal Dewasa",
+      "surah": "Al Imran",
+      "verses": "21 dst (hal. 41)"
+    },
+    {
+      "category": "Qira\u0027at Murattal Dewasa",
+      "surah": "An Nisa",
+      "verses": "92 dst (hal. 74)"
+    },
+    {
+      "category": "Qira\u0027at Murattal Dewasa",
+      "surah": "Al Maidah",
+      "verses": "67 dst (hal. 95)"
+    },
+    {
+      "category": "Qira\u0027at Murattal Dewasa",
+      "surah": "Al An’am",
+      "verses": "21 dst (hal. 103)"
+    },
+    {
+      "category": "Qira\u0027at Murattal Dewasa",
+      "surah": "Al A’raf",
+      "verses": "1 dst (hal. 119)"
+    },
+    {
+      "category": "Qira\u0027at Murattal Dewasa",
+      "surah": "Al Anfal",
+      "verses": "65 dst (hal. 147)"
+    },
+    {
+      "category": "Qira\u0027at Murattal Remaja",
+      "surah": "Al Imran",
+      "verses": "21 dst (hal. 41)"
+    },
+    {
+      "category": "Qira\u0027at Murattal Remaja",
+      "surah": "An Nisa",
+      "verses": "92 dst (hal. 74)"
+    },
+    {
+      "category": "Qira\u0027at Murattal Remaja",
+      "surah": "Al Maidah",
+      "verses": "67 dst (hal. 95)"
+    },
+    {
+      "category": "Qira\u0027at Murattal Remaja",
+      "surah": "Al An’am",
+      "verses": "21 dst (hal. 103)"
+    },
+    {
+      "category": "Qira\u0027at Murattal Remaja",
+      "surah": "Al A’raf",
+      "verses": "1 dst (hal. 119)"
+    },
+    {
+      "category": "Qira\u0027at Murattal Remaja",
+      "surah": "Al Anfal",
+      "verses": "65 dst (hal. 147)"
+    }
+  ]
+}

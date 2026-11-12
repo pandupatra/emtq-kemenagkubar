@@ -1,0 +1,71 @@
+{
+  "example": false,
+  "source": "Final: Maqro Tilawah Golongan 5 JUZ -.docx; Maqro Tilawah Golongan 1 JUZ -.docx",
+  "packages": [
+    {
+      "category": "5 Juz dan Tilawah",
+      "surah": "Yunus",
+      "verses": "11 dst (hal. 167)"
+    },
+    {
+      "category": "5 Juz dan Tilawah",
+      "surah": "Hud",
+      "verses": "25 dst (hal. 179)"
+    },
+    {
+      "category": "5 Juz dan Tilawah",
+      "surah": "Ar Ra’d",
+      "verses": "32 dst (hal. 202)"
+    },
+    {
+      "category": "5 Juz dan Tilawah",
+      "surah": "At Taubah",
+      "verses": "30 dst (hal. 153)"
+    },
+    {
+      "category": "5 Juz dan Tilawah",
+      "surah": "At Taubah",
+      "verses": "90 dst (hal. 160)"
+    },
+    {
+      "category": "5 Juz dan Tilawah",
+      "surah": "Al Kahfi",
+      "verses": "23 dst (hal. 236)"
+    },
+    {
+      "category": "5 Juz dan Tilawah",
+      "surah": "Al Hajj",
+      "verses": "34 dst (hal. 268)"
+    },
+    {
+      "category": "1 Juz dan Tilawah",
+      "surah": "Al Imran",
+      "verses": "21 dst (hal. 41)"
+    },
+    {
+      "category": "1 Juz dan Tilawah",
+      "surah": "An Nisa",
+      "verses": "92 dst (hal. 74)"
+    },
+    {
+      "category": "1 Juz dan Tilawah",
+      "surah": "Al Maidah",
+      "verses": "67 dst (hal. 95)"
+    },
+    {
+      "category": "1 Juz dan Tilawah",
+      "surah": "Al An’am",
+      "verses": "21 dst (hal. 103)"
+    },
+    {
+      "category": "1 Juz dan Tilawah",
+      "surah": "Al A’raf",
+      "verses": "1 dst (hal. 119)"
+    },
+    {
+      "category": "1 Juz dan Tilawah",
+      "surah": "Al Anfal",
+      "verses": "65 dst (hal. 147)"
+    }
+  ]
+}

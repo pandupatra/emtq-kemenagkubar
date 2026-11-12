@@ -1438,6 +1438,7 @@ export default function Workspace({ configured }: { configured: boolean }) {
                 key={`${data.profile.id}:${impersonatedId || ""}`}
                 base={data}
                 page={page}
+                onOpenPeople={() => go("people")}
                 impersonatedId={targetProfile?.id}
                 onBusy={(value) => {
                   mutation.current = value;

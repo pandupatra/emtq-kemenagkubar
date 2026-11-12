@@ -493,6 +493,51 @@ async function browserFlow(page, cfg) {
     .click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   await captureFinal("people");
+  await page
+    .getByRole("button", { name: "Ringkasan kerja", exact: true })
+    .click();
+  await page.locator(".work-summary").waitFor();
+  const finalTotals = await page
+    .locator(".overview-count strong")
+    .allTextContents();
+  if (JSON.stringify(finalTotals) !== JSON.stringify(["4", "2", "2"]))
+    throw Error("Final summary counts mixed rounds: " + finalTotals);
+  await page
+    .getByRole("heading", { name: "Peserta per kecamatan", exact: true })
+    .waitFor();
+  await page
+    .getByRole("heading", { name: "Peserta per cabang", exact: true })
+    .waitFor();
+  if (await page.locator(".final-people-table").count())
+    throw Error("Final summary still renders participant list");
+  await captureFinal("summary");
+  await page
+    .locator(".overview-count")
+    .filter({ hasText: "Belum mengundi" })
+    .click();
+  await page.locator("#final-draw-status").waitFor();
+  if ((await page.locator("#final-draw-status").inputValue()) !== "not-drawn")
+    throw Error("Final summary status filter lost");
+  if ((await page.locator(".final-people-table tbody tr").count()) !== 2)
+    throw Error("Final remaining filter incorrect");
+  await page
+    .getByRole("button", { name: "Ringkasan kerja", exact: true })
+    .click();
+  await page.locator(".district-name").filter({ hasText: "MELAK" }).click();
+  if ((await page.locator("#final-district").inputValue()) !== "MELAK")
+    throw Error("Final summary district filter lost");
+  await page
+    .getByRole("button", { name: "Ringkasan kerja", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Penyisihan", exact: true }).click();
+  await page.locator(".work-summary").waitFor();
+  const preliminaryTotals = await page
+    .locator(".overview-count strong")
+    .allTextContents();
+  if (preliminaryTotals[0] === "4")
+    throw Error("Preliminary summary uses finalist totals");
+  await page.getByRole("button", { name: "Final", exact: true }).click();
+  await page.locator(".work-summary").waitFor();
   await page.getByRole("button", { name: "Bank maqro", exact: true }).click();
   await page
     .getByRole("button", { name: "Tambah maqro final", exact: true })
