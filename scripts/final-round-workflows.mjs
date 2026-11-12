@@ -343,4 +343,123 @@ export default async function verifyFinal({
   pass(
     "Final RLS, inactive-account gates, lock-wait schedule expiry, duplicate requests, and participant deletion compatibility",
   );
+
+  const remainingResults = (
+    await db.query(
+      "select id,cancelled from public.final_results where session_id=$1 order by id",
+      [session],
+    )
+  ).rows;
+  const ids = remainingResults.map((r) => r.id);
+  const finalBeforeDelete = (
+    await db.query(
+      "select jsonb_agg(r order by id) snapshot from public.final_results r",
+    )
+  ).rows[0].snapshot;
+  const preliminaryBeforeDelete = await legacy();
+  async function deletionAs(actor, targetIds, inspect) {
+    await db.query("begin");
+    try {
+      await db.query("select set_config('request.jwt.claim.sub',$1,true)", [
+        actor,
+      ]);
+      await db.query("set local role authenticated");
+      const saved = (
+        await db.query(
+          "select public.delete_final_draw_history($1::uuid[]) result",
+          [targetIds],
+        )
+      ).rows[0].result;
+      if (inspect) await inspect(saved);
+      return saved;
+    } finally {
+      await db.query("rollback");
+    }
+  }
+  await assert.rejects(() => deletionAs(district, ids), /panitia aktif/);
+  await assert.rejects(() => deletionAs(other, ids), /panitia aktif/);
+  await assert.rejects(() => deletionAs(admin, []), /Pilih hasil/);
+  await assert.rejects(
+    () => deletionAs(admin, [ids[0], randomUUID()]),
+    /Sebagian histori/,
+  );
+  await assert.rejects(
+    () => deletionAs(admin, [ids[0], null, randomUUID()]),
+    /Sebagian histori/,
+  );
+  await db.query("update public.profiles set active=false where id=$1", [
+    admin,
+  ]);
+  await assert.rejects(() => deletionAs(admin, ids), /panitia aktif/);
+  await db.query("update public.profiles set active=true where id=$1", [admin]);
+  await db.query("begin");
+  await db.query("set local role anon");
+  await assert.rejects(
+    () =>
+      db.query("select public.delete_final_draw_history($1::uuid[])", [ids]),
+    /permission denied/,
+  );
+  await db.query("rollback");
+  const activeId = remainingResults.find((r) => !r.cancelled).id;
+  await deletionAs(admin, [activeId, activeId, null], async (saved) => {
+    assert.equal(saved.deleted_results, 1);
+    assert.deepEqual(saved.ids, [activeId]);
+    assert.equal(
+      (
+        await db.query(
+          "select count(*)::int n from public.final_results where id=$1",
+          [activeId],
+        )
+      ).rows[0].n,
+      0,
+    );
+    assert.equal(
+      (
+        await db.query(
+          "select count(*)::int n from public.final_participants where category_id=$1",
+          [category],
+        )
+      ).rows[0].n,
+      3,
+    );
+    const log = (
+      await db.query(
+        "select actor,message from public.logs where message like 'Histori Final dihapus permanen:%' order by created_at desc limit 1",
+      )
+    ).rows[0];
+    assert.equal(log.actor, admin);
+    assert.ok(log.message.includes(activeId));
+  });
+  await deletionAs(admin, ids, async (saved) => {
+    assert.equal(saved.deleted_results, ids.length);
+    assert.equal(
+      (
+        await db.query(
+          "select count(*)::int n from public.final_results where session_id=$1",
+          [session],
+        )
+      ).rows[0].n,
+      0,
+    );
+    const redrawn = (
+      await db.query("select public.maqro_final_action('draw',$1) result", [
+        { id: p2, session_id: session, impersonated_profile_id: district },
+      ])
+    ).rows[0].result;
+    assert.ok(redrawn.id);
+    assert.equal(redrawn.person_id, p2);
+    assert.ok(!ids.includes(redrawn.id));
+  });
+  assert.deepEqual(
+    (
+      await db.query(
+        "select jsonb_agg(r order by id) snapshot from public.final_results r",
+      )
+    ).rows[0].snapshot,
+    finalBeforeDelete,
+  );
+  assert.deepEqual(await legacy(), preliminaryBeforeDelete);
+  pass(
+    "Final history deletion: admin-only, inactive/anonymous denial, atomic stale IDs, deduplication, audit, bulk active/cancelled deletion and redraw without changing preliminary data",
+  );
 }

@@ -33,6 +33,7 @@ type DialogState =
   | { kind: "session"; session: Session }
   | { kind: "remove"; person: Person }
   | { kind: "cancel"; result: Result }
+  | { kind: "delete-history"; results: Result[]; all: boolean }
   | { kind: "receipt"; result: Result };
 
 async function readFinalTable(name: string) {
@@ -174,23 +175,38 @@ export default function FinalWorkspace({
     setError("");
     setFeedback("");
     try {
-      const { data: saved, error: failure } = await supabase().rpc(
-        "maqro_final_action",
-        {
-          action,
-          payload: {
-            ...payload,
-            ...(impersonatedId
-              ? { impersonated_profile_id: impersonatedId }
-              : {}),
-          },
-        },
-      );
+      const { data: saved, error: failure } =
+        action === "delete-history"
+          ? await supabase().rpc("delete_final_draw_history", {
+              result_ids: payload.ids,
+            })
+          : await supabase().rpc("maqro_final_action", {
+              action,
+              payload: {
+                ...payload,
+                ...(impersonatedId
+                  ? { impersonated_profile_id: impersonatedId }
+                  : {}),
+              },
+            });
       if (failure) throw failure;
       if (!alive.current) return saved;
+      if (action === "delete-history") {
+        const removed = new Set(payload.ids as string[]);
+        setData((current) => ({
+          ...current,
+          final_results: current.final_results.filter(
+            (r) => !removed.has(r.id),
+          ),
+        }));
+      }
       setDialog(null);
       setSelected([]);
-      setFeedback("Perubahan babak Final tersimpan.");
+      setFeedback(
+        action === "delete-history"
+          ? "Histori Final dihapus."
+          : "Perubahan babak Final tersimpan.",
+      );
       try {
         await refresh();
       } catch {
@@ -202,8 +218,10 @@ export default function FinalWorkspace({
     } catch (e) {
       if (alive.current)
         setError(
-          (e as { message?: string }).message ||
-            "Perubahan gagal disimpan. Periksa koneksi lalu coba lagi.",
+          (e as { code?: string }).code === "PGRST202"
+            ? "Fitur ini belum diaktifkan. Hubungi pengelola aplikasi."
+            : (e as { message?: string }).message ||
+                "Perubahan gagal disimpan. Periksa koneksi lalu coba lagi.",
         );
       return null;
     } finally {
@@ -392,6 +410,21 @@ export default function FinalWorkspace({
         <div className="actions">
           {admin && page === "people" ? (
             <button
+              className="btn danger"
+              disabled={busy || !data.final_results.length}
+              onClick={() =>
+                setDialog({
+                  kind: "delete-history",
+                  results: [...data.final_results],
+                  all: true,
+                })
+              }
+            >
+              Hapus seluruh histori Final
+            </button>
+          ) : null}
+          {admin && page === "people" ? (
+            <button
               className="btn primary"
               disabled={busy}
               onClick={() => setDialog({ kind: "finalists" })}
@@ -529,6 +562,16 @@ export default function FinalWorkspace({
                       )}
                       busy={busy}
                       onView={(r) => setDialog({ kind: "receipt", result: r })}
+                      onDelete={
+                        admin
+                          ? (r) =>
+                              setDialog({
+                                kind: "delete-history",
+                                results: [r],
+                                all: false,
+                              })
+                          : undefined
+                      }
                       onCancel={
                         admin
                           ? (r) => setDialog({ kind: "cancel", result: r })
@@ -788,6 +831,7 @@ export default function FinalWorkspace({
               session: "Pengaturan sesi Final",
               remove: "Keluarkan finalis",
               cancel: "Batalkan hasil final",
+              "delete-history": "Hapus histori Final",
               receipt: "Bukti hasil undian Final",
             }[dialog.kind]
           }
@@ -803,6 +847,66 @@ export default function FinalWorkspace({
             <p className="error" role="alert">
               {error}
             </p>
+          ) : null}
+          {dialog.kind === "delete-history" && admin ? (
+            <form
+              className="form-stack"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void act("delete-history", {
+                  ids: dialog.results.map((r) => r.id),
+                });
+              }}
+            >
+              <p>
+                {dialog.all ? (
+                  <>
+                    Hapus seluruh{" "}
+                    <strong>{dialog.results.length} hasil undian Final</strong>{" "}
+                    dari semua finalis dan cabang, termasuk hasil yang
+                    dibatalkan? Filter daftar finalis tidak membatasi
+                    penghapusan ini.
+                  </>
+                ) : (
+                  <>
+                    Hapus hasil undian Final{" "}
+                    <strong>{dialog.results[0].name}</strong> untuk cabang{" "}
+                    <strong>{dialog.results[0].category}</strong>, materi{" "}
+                    <strong>{dialog.results[0].surah}</strong> (
+                    {dialog.results[0].verses})?
+                  </>
+                )}
+              </p>
+              <p className="notice">
+                Histori dan bukti hasil Final dihapus permanen. Finalis,
+                peserta, serta hasil Penyisihan tetap tersimpan. Paket maqro
+                Final kembali tersedia dan finalis dapat mengundi kembali jika
+                sesinya dibuka. Catatan aktivitas penghapusan tetap disimpan.
+              </p>
+              <label className="checkline">
+                <input type="checkbox" required disabled={busy} /> Saya memahami
+                bahwa histori yang dihapus tidak dapat dikembalikan.
+              </label>
+              <div className="dialog-actions actions">
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busy}
+                  onClick={() => {
+                    setDialog(null);
+                    setError("");
+                  }}
+                >
+                  Batal
+                </button>
+                <button
+                  className="btn danger"
+                  disabled={busy || !dialog.results.length}
+                >
+                  {busy ? "Menghapus…" : "Hapus permanen"}
+                </button>
+              </div>
+            </form>
           ) : null}
           {dialog.kind === "finalists" ? (
             <FinalistPicker

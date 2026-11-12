@@ -64,7 +64,14 @@ export default async function verifyBrowser({
         for await (const chunk of req) body += chunk;
         const args = JSON.parse(body),
           rpc = url.pathname.split("/").at(-1);
-        if (rpc === "maqro_final_action")
+        if (rpc === "delete_final_draw_history")
+          data = (
+            await client.query(
+              "select public.delete_final_draw_history($1) result",
+              [args.result_ids],
+            )
+          ).rows[0].result;
+        else if (rpc === "maqro_final_action")
           data = (
             await client.query(
               "select public.maqro_final_action($1,$2) result",
@@ -638,6 +645,90 @@ async function browserFlow(page, cfg) {
   if ((await page.locator(".receipt").innerText()) !== finalReceipt)
     throw Error("Final receipt changed on reload");
 
+  await page
+    .getByRole("button", { name: "Daftar peserta", exact: true })
+    .click();
+  if (await page.getByRole("button", { name: /Hapus.*histori/ }).count())
+    throw Error("District sees Final history deletion controls");
+  await page.getByRole("button", { name: "Keluar", exact: true }).click();
+  await login("admin");
+  await page
+    .getByRole("button", { name: "Daftar peserta", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Final", exact: true }).click();
+  await page
+    .getByLabel("Cari finalis", { exact: true })
+    .fill("QA UI Participant");
+  await page
+    .getByRole("button", {
+      name: "Hapus histori QA UI Tartil, QA UI Participant",
+      exact: true,
+    })
+    .click();
+  const deletesBefore = writes.filter((w) =>
+    Array.isArray(w.result_ids),
+  ).length;
+  await page
+    .getByRole("button", { name: "Hapus permanen", exact: true })
+    .click();
+  if (
+    writes.filter((w) => Array.isArray(w.result_ids)).length !== deletesBefore
+  )
+    throw Error("Deletion bypassed checkbox confirmation");
+  await captureFinal("delete-history-dialog");
+  await page.getByRole("checkbox", { name: /Saya memahami/ }).check();
+  await page
+    .getByRole("button", { name: "Hapus permanen", exact: true })
+    .click();
+  await page.getByRole("dialog").waitFor({ state: "hidden" });
+  if ((await page.locator(".final-people-table tbody tr").count()) !== 1)
+    throw Error("History deletion removed finalist");
+  await page.getByText("Belum ada hasil undian", { exact: true }).waitFor();
+  await page
+    .getByRole("button", { name: "Hapus seluruh histori Final", exact: true })
+    .click();
+  if (
+    !(await page.getByRole("dialog").innerText()).includes(
+      "3 hasil undian Final",
+    )
+  )
+    throw Error("Bulk deletion scope incorrectly follows search filter");
+  await page.getByRole("button", { name: "Batal", exact: true }).click();
+  if (
+    writes.filter((w) => Array.isArray(w.result_ids)).length !==
+    deletesBefore + 1
+  )
+    throw Error("Cancel triggered history deletion");
+  await page
+    .getByRole("button", { name: "Hapus seluruh histori Final", exact: true })
+    .click();
+  await page.getByRole("checkbox", { name: /Saya memahami/ }).check();
+  await page
+    .getByRole("button", { name: "Hapus permanen", exact: true })
+    .click();
+  await page.getByRole("dialog").waitFor({ state: "hidden" });
+  if (
+    !(await page
+      .getByRole("button", { name: "Hapus seluruh histori Final", exact: true })
+      .isDisabled())
+  )
+    throw Error("Bulk-delete button remains enabled for empty history");
+  await page.getByRole("button", { name: "Reset filter", exact: true }).click();
+  if ((await page.locator(".final-people-table tbody tr").count()) !== 4)
+    throw Error("Bulk history deletion removed finalists");
+  await page.reload();
+  await page
+    .getByRole("button", { name: "Daftar peserta", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Final", exact: true }).click();
+  if (
+    !(await page
+      .getByRole("button", { name: "Hapus seluruh histori Final", exact: true })
+      .isDisabled())
+  )
+    throw Error("Deleted history returned after reload");
+  await page.getByRole("button", { name: "Keluar", exact: true }).click();
+  await login("melak");
   finalMissing = true;
   await page.reload();
   await page.getByRole("button", { name: "Undian maqro", exact: true }).click();

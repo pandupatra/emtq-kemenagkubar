@@ -1,13 +1,14 @@
 # Babak Final
 
-Implementasi ini belum diterapkan ke production. Data peserta tetap memakai
+Data peserta tetap memakai
 `people`; keikutsertaan, jadwal, sesi, paket, dan hasil Final memakai empat tabel
 `final_*` serta RPC `maqro_final_action`. RPC dan tabel penyisihan tidak diubah.
 
 ## Urutan rilis
 
-1. Pastikan backup database production tersedia. Periksa daftar migrasi pending;
-   rilis ini menambahkan hanya `20261112014552_final_round.sql`.
+1. Pastikan backup database production tersedia. Periksa daftar migrasi pending.
+   Instalasi Final memakai `20261112014552_final_round.sql`; penghapusan histori
+   Final memerlukan `20261112104456_final_draw_history_deletion.sql` setelahnya.
 2. Uji migrasi dan build pada staging terlebih dahulu. Terapkan migrasi baru
    sebagai satu transaksi. `lock_timeout = '5s'` membatalkan migrasi jika lock
    tidak segera tersedia; jangan menaikkan timeout saat undian sedang ramai.
@@ -38,6 +39,13 @@ Implementasi ini belum diterapkan ke production. Data peserta tetap memakai
   hasil lama tetap tercatat. Finalis yang memiliki riwayat undian tidak dapat
   dikeluarkan. Penghapusan peserta dari fitur lama tetap menghapus seluruh
   riwayat peserta, termasuk Final, melalui FK cascade.
+- Penghapusan histori tersedia per hasil dan melalui Hapus seluruh histori Final
+  di Daftar peserta → Final. Panitia harus menyetujui checkbox konfirmasi.
+  Penghapusan seluruh histori mencakup hasil aktif/dibatalkan di semua cabang,
+  terlepas dari filter daftar, sesuai jumlah dan ID yang dikonfirmasi. Peserta,
+  finalis, paket, serta hasil Penyisihan tetap tersimpan. Catatan audit mencatat
+  admin pelaksana dan hasil yang dihapus. ID kedaluwarsa membatalkan seluruh
+  batch, sehingga panitia perlu memuat ulang dan memeriksa kembali.
 
 ## Pemulihan
 
@@ -61,7 +69,7 @@ Jangan mengulangi migrasi yang sudah tercatat berhasil.
 Verifikasi lokal tidak membuktikan konfigurasi Realtime atau deployment hosted.
 Tidak ada akun, paket, hasil, atau migrasi production yang diubah saat pengujian.
 
-Hasil pemeriksaan 12 November 2026: 16 unit test lulus; 17 kelompok workflow
+Hasil pemeriksaan 12 November 2026: 16 unit test lulus; 18 kelompok workflow
 lulus termasuk browser → API fixture → PostgreSQL → bukti → reload. Migrasi
 diuji pada tabel Penyisihan yang sudah berisi data, dengan snapshot tabel dan
 definisi RPC lama tetap sama. Browser juga menguji fallback tanpa migrasi Final.
